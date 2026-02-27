@@ -3,177 +3,109 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GAMEFLUX GLOBAL / 全球遊戲脈動</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+TC:wght@300;400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<title>GAMEFLUX GLOBAL | Top 10 Media Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+TC:wght@400;700&family=Space+Mono&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0a0a0f; --surface: #111118; --card: #16161f; --accent: #00ff88;
-    --accent2: #ff3366; --text: #e8e8f0; --muted: #6b6b80; --border: rgba(255,255,255,0.06);
-    --glow: 0 0 20px rgba(0,255,136,0.1);
+    --bg: #050508; --surface: #0f0f15; --card: #14141d; --accent: #00ff88;
+    --accent2: #ff3366; --text: #f0f0f5; --muted: #707080; --border: rgba(255,255,255,0.08);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Noto Sans TC', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  body { background: var(--bg); color: var(--text); font-family: 'Noto Sans TC', sans-serif; }
   
   header {
-    position: sticky; top: 0; z-index: 100; background: rgba(10,10,15,0.9); backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--border); padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 64px;
+    position: sticky; top: 0; z-index: 100; background: rgba(5,5,8,0.9); backdrop-filter: blur(15px);
+    border-bottom: 1px solid var(--border); padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 70px;
   }
-  .logo { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: 4px; color: var(--accent); }
+  .logo { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; letter-spacing: 3px; color: var(--accent); }
   .logo span { color: var(--accent2); }
-  
-  .refresh-btn {
-    display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: transparent;
-    border: 1px solid var(--accent); color: var(--accent); font-family: 'Space Mono', monospace;
-    font-size: 0.75rem; border-radius: 6px; cursor: pointer; transition: 0.2s;
-  }
-  .refresh-btn:hover { background: var(--accent); color: #000; box-shadow: var(--glow); }
-  .refresh-btn.spinning svg { animation: spin 1s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
 
-  .ticker-wrap { background: var(--accent2); height: 32px; display: flex; align-items: center; overflow: hidden; }
-  .ticker-label { background: #000; color: var(--accent2); font-family: 'Bebas Neue', sans-serif; padding: 0 16px; font-size: 1rem; height: 100%; display: flex; align-items: center; z-index: 2; }
-  .ticker-track { display: flex; animation: ticker 60s linear infinite; white-space: nowrap; }
-  .ticker-track span { font-size: 0.75rem; color: #fff; padding: 0 40px; font-weight: 700; font-family: 'Space Mono', monospace; }
+  .refresh-btn {
+    background: transparent; border: 1px solid var(--accent); color: var(--accent);
+    padding: 8px 16px; font-family: 'Space Mono', monospace; font-size: 0.8rem; border-radius: 4px; cursor: pointer;
+  }
+  .refresh-btn.spinning { animation: rotate 1s linear infinite; opacity: 0.5; }
+  @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  .ticker-wrap { background: var(--accent2); color: #fff; height: 35px; display: flex; align-items: center; overflow: hidden; font-weight: bold; }
+  .ticker-track { display: flex; animation: ticker 50s linear infinite; white-space: nowrap; }
+  .ticker-track span { padding: 0 50px; font-size: 0.85rem; }
   @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
   main { max-width: 1400px; margin: 0 auto; padding: 2rem; }
-  .status-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; font-family: 'Space Mono', monospace; font-size: 0.7rem; color: var(--muted); }
-  .live-dot { color: var(--accent); display: flex; align-items: center; gap: 6px; }
-  .live-dot::before { content: ''; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: pulse 1.5s infinite; }
-  @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-
-  .section-label { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; color: var(--muted); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px; letter-spacing: 2px; }
-  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-
-  .news-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
-  .news-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: 0.3s; animation: fadeIn 0.5s ease both; }
-  .news-card:hover { transform: translateY(-5px); border-color: var(--accent); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 2rem; }
   
-  .card-thumb { aspect-ratio: 16/9; position: relative; background: #1a1a2e; overflow: hidden; }
-  .card-thumb img { width: 100%; height: 100%; object-fit: cover; }
-  .card-tag { position: absolute; top: 10px; left: 10px; background: var(--accent2); color: #fff; font-size: 0.6rem; padding: 2px 8px; border-radius: 4px; font-weight: bold; letter-spacing: 1px; }
+  .card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); transition: 0.3s; }
+  .card:hover { border-color: var(--accent); transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
   
-  .card-body { padding: 1.2rem; }
-  .card-meta { font-size: 0.65rem; color: var(--accent); margin-bottom: 0.5rem; font-family: 'Space Mono', monospace; display: flex; justify-content: space-between; }
-  .card-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 1rem; line-height: 1.4; height: 2.8rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-  .card-summary { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; line-height: 1.5; height: 3.6rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
-  .read-more { display: inline-block; color: var(--text); text-decoration: none; font-size: 0.75rem; border: 1px solid var(--border); padding: 6px 12px; border-radius: 4px; transition: 0.2s; font-family: 'Space Mono', monospace; }
-  .read-more:hover { color: var(--accent); border-color: var(--accent); background: rgba(0,255,136,0.05); }
+  .thumb { width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  
+  .content { padding: 1.5rem; }
+  .meta { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: var(--accent); margin-bottom: 0.5rem; display: flex; justify-content: space-between; }
+  .title { font-size: 1.1rem; font-weight: 700; line-height: 1.4; margin-bottom: 1rem; height: 3.1rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .btn { display: inline-block; padding: 6px 12px; border: 1px solid var(--border); color: var(--text); text-decoration: none; font-size: 0.75rem; border-radius: 4px; transition: 0.2s; }
+  .btn:hover { background: var(--accent); color: #000; border-color: var(--accent); }
 
-  /* Loading Skeleton */
-  .skeleton { height: 400px; background: var(--card); border-radius: 12px; position: relative; overflow: hidden; }
-  .skeleton::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent); animation: loading 1.5s infinite; }
-  @keyframes loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+  .skeleton { height: 300px; background: var(--surface); border-radius: 12px; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 50% { opacity: 0.4; } }
 
-  footer { padding: 4rem 2rem; text-align: center; color: var(--muted); font-size: 0.7rem; font-family: 'Space Mono', monospace; border-top: 1px solid var(--border); margin-top: 4rem; }
-
-  @media (max-width: 600px) {
-    header { padding: 0 1rem; }
-    .logo { font-size: 1.4rem; }
-    main { padding: 1rem; }
-    .news-grid { grid-template-columns: 1fr; }
-  }
+  @media (max-width: 768px) { header { padding: 0 1rem; } .logo { font-size: 1.6rem; } }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">GAME<span>FLUX</span> GLOBAL</div>
-  <button class="refresh-btn" id="refreshBtn" onclick="manualRefresh()">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-    <span id="refreshTxt">REFRESH</span>
-  </button>
+  <div class="logo">GAME<span>FLUX</span> ELITE</div>
+  <button class="refresh-btn" id="refBtn" onclick="fetchData()">SYNC</button>
 </header>
 
 <div class="ticker-wrap">
-  <div class="ticker-label">LATEST</div>
-  <div class="ticker-track" id="tickerTrack"><span>Fetching global gaming intelligence...</span></div>
+  <div class="ticker-track" id="ticker"><span>Loading Global Gaming Intelligence from Top 10 Sources...</span></div>
 </div>
 
 <main>
-  <div class="status-info">
-    <span class="live-dot">AUTO-UPDATING LIVE</span>
-    <span id="updateTime">Last Sync: --:--:--</span>
-  </div>
-  <div class="section-label">HOT & TRENDING / 全球遊戲情報</div>
-  <div id="newsGrid" class="news-grid">
-    <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+  <div id="newsGrid" class="grid">
+    <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
   </div>
 </main>
 
-<footer>
-  GAMEFLUX GLOBAL ENGINE v2.5 // MAIN SOURCE: IGN, GAMER.COM.TW, GAMESPOT // POWERED BY GNEWS API
-</footer>
-
 <script>
-let isRefreshing = false;
-
-async function loadNews() {
-  if (isRefreshing) return;
-  isRefreshing = true;
-  
-  const btn = document.getElementById('refreshBtn');
+async function fetchData() {
+  const btn = document.getElementById('refBtn');
   const grid = document.getElementById('newsGrid');
-  const timeLabel = document.getElementById('updateTime');
-  
   btn.classList.add('spinning');
 
   try {
-    const resp = await fetch('/api/news');
-    const data = await resp.json();
+    const res = await fetch('/api/news');
+    const data = await res.json();
     
-    if (data.articles && data.articles.length > 0) {
-      // 1. 更新跑馬燈 (前8則)
-      const tickerContent = data.articles.slice(0, 8).map(a => a.title).join(' • ');
-      document.getElementById('tickerTrack').innerHTML = `<span>${tickerContent}</span><span>${tickerContent}</span>`;
+    if (data.articles) {
+      // 跑馬燈
+      const tContent = data.articles.slice(0,10).map(a => a.title).join(' • ');
+      document.getElementById('ticker').innerHTML = `<span>${tContent}</span><span>${tContent}</span>`;
       
-      // 2. 更新新聞列表
-      grid.innerHTML = data.articles.map((a, i) => `
-        <article class="news-card" style="animation-delay: ${i * 0.05}s">
-          <div class="card-thumb">
-            ${a.image ? `<img src="${a.image}" loading="lazy" onerror="this.src='https://placehold.co/600x400/111118/00ff88?text=Gaming+News'">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--muted)">NO IMAGE</div>`}
-            <div class="card-tag">TRENDING</div>
-          </div>
-          <div class="card-body">
-            <div class="card-meta">
-                <span>${a.source.toUpperCase()}</span>
-                <span>${a.date}</span>
-            </div>
-            <h3 class="card-title">${a.title}</h3>
-            <p class="card-summary">${a.summary}</p>
-            <a href="${a.url}" target="_blank" class="read-more">READ SOURCE</a>
+      // 網格
+      grid.innerHTML = data.articles.map(a => `
+        <article class="card">
+          <div class="thumb">${a.image ? `<img src="${a.image}" loading="lazy">` : ''}</div>
+          <div class="content">
+            <div class="meta"><span>${a.source}</span><span>${a.date}</span></div>
+            <h3 class="title">${a.title}</h3>
+            <a href="${a.url}" target="_blank" class="btn">READ MORE</a>
           </div>
         </article>
       `).join('');
-
-      timeLabel.textContent = `Last Sync: ${new Date().toLocaleTimeString()}`;
-    } else {
-      throw new Error(data.error || "Empty response");
     }
   } catch (err) {
-    console.error('Fetch Error:', err);
-    grid.innerHTML = `
-      <div style="grid-column:1/-1;text-align:center;padding:4rem;color:var(--accent2);font-family:'Space Mono';border:1px dashed var(--accent2);border-radius:12px;">
-        [ API FETCH FAILED ]<br>
-        <small style="color:var(--muted);display:block;margin-top:10px;">原因：${err.message === 'Empty response' ? 'API 額度用盡或環境變數未設定' : err.message}</small>
-      </div>`;
+    grid.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:var(--accent2)">Fetch Failed: ${err.message}</p>`;
   } finally {
     btn.classList.remove('spinning');
-    isRefreshing = false;
   }
 }
 
-function manualRefresh() {
-    loadNews();
-}
-
-// 初始載入
-loadNews();
-
-// 每 10 分鐘背景自動抓取 (600,000 毫秒)
-setInterval(loadNews, 600000);
+fetchData();
+setInterval(fetchData, 600000); // 10分鐘自動同步
 </script>
 </body>
 </html>
