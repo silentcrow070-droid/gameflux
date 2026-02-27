@@ -1,4 +1,4 @@
-// api/news.js — 嚴格限制 10 大主流媒體版
+// api/news.js — 頂尖 10 大媒體 + 近一週過濾
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=300');
@@ -6,9 +6,11 @@ export default async function handler(req, res) {
   const apiKey = process.env.GNEWS_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'GNEWS_API_KEY not set' });
 
-  // 嚴格定義 10 大來源
-  // 中文：巴哈姆特, 4Gamers, 遊戲基地, 電玩宅速配, IGN Taiwan
-  // 英文：IGN, GameSpot, PC Gamer, Eurogamer, GamesRadar
+  // 計算 7 天前的日期 (ISO 8601 格式: YYYY-MM-DDTHH:MM:SSZ)
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  const fromDate = oneWeekAgo.toISOString().split('.')[0] + 'Z'; 
+
   const configs = [
     { 
       lang: 'zh', 
@@ -23,12 +25,12 @@ export default async function handler(req, res) {
 
   try {
     const requests = configs.map(conf => {
-      let url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(conf.q)}&lang=${conf.lang}&max=15&apikey=${apiKey}`;
-      if (conf.country) url += `&country=${conf.country}`;
+      // 加入 from 參數限制時間
+      const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(conf.q)}&lang=${conf.lang}&max=15&from=${fromDate}&apikey=${apiKey}${conf.country ? `&country=${conf.country}` : ''}`;
       
       return fetch(url).then(async r => {
         const d = await r.json();
-        if (!r.ok) return { error: d.errors || 'API limit' };
+        if (!r.ok) return { error: d.errors || 'API error' };
         return d;
       });
     });
@@ -45,18 +47,17 @@ export default async function handler(req, res) {
             url: a.url,
             image: a.image || null,
             source: a.source?.name || 'News',
-            date: a.publishedAt ? a.publishedAt.slice(0, 10) : '',
-            timestamp: new Date(a.publishedAt || Date.now()).getTime()
+            date: a.publishedAt ? a.publishedAt.split('T')[0] : '',
+            timestamp: new Date(a.publishedAt).getTime()
           });
         });
       }
     });
 
-    // 依發布時間排序
     combined.sort((a, b) => b.timestamp - a.timestamp);
 
     if (combined.length === 0) {
-      return res.status(404).json({ error: "No articles found from specified top 10 sources." });
+      return res.status(404).json({ error: "近一週內各大站無更新內容。" });
     }
 
     return res.status(200).json({ articles: combined });
