@@ -1,25 +1,27 @@
-// api/news.js — 方案 A：30分鐘長效快取版
+// api/news.js — 穩定版：72H 時效 + 30分鐘快取
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  // 核心修改：s-maxage=1800 代表 Vercel 會快取結果 30 分鐘
+  // Vercel 快取 30 分鐘，過期後 15 分鐘內仍可提供舊資料並背景更新
   res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=900');
 
   const apiKey = process.env.GNEWS_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'GNEWS_API_KEY not set' });
 
+  // 計算 72 小時前 (避免 24H 內剛好無索引的狀況)
   const now = new Date();
-  const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
-  const fromDate = twentyFourHoursAgo.toISOString().split('.')[0] + 'Z'; 
+  const threeDaysAgo = new Date(now.getTime() - (72 * 60 * 60 * 1000));
+  const fromDate = threeDaysAgo.toISOString().split('.')[0] + 'Z'; 
 
   const configs = [
     { 
       lang: 'zh', 
       country: 'tw', 
-      q: '"巴哈姆特" OR "4Gamers" OR "遊戲基地" OR "電玩宅速配" OR "IGN"' 
+      // 移除引號，增加匹配機率
+      q: '巴哈姆特 OR 4Gamers OR 遊戲基地 OR 電玩宅速配 OR IGN' 
     },
     { 
       lang: 'en', 
-      q: '"IGN" OR "GameSpot" OR "PC Gamer" OR "Eurogamer" OR "GamesRadar"' 
+      q: 'IGN OR GameSpot OR PC Gamer OR Eurogamer OR GamesRadar' 
     }
   ];
 
@@ -40,21 +42,27 @@ export default async function handler(req, res) {
       if (data && data.articles) {
         data.articles.forEach(a => {
           const pubDate = new Date(a.publishedAt);
-          const timeStr = pubDate.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
+          // 格式化日期：05/20 14:30
+          const dateStr = (pubDate.getMonth() + 1).toString().padStart(2, '0') + '/' + 
+                          pubDate.getDate().toString().padStart(2, '0') + ' ' +
+                          pubDate.getHours().toString().padStart(2, '0') + ':' + 
+                          pubDate.getMinutes().toString().padStart(2, '0');
           
           combined.push({
             title: a.title,
             url: a.url,
             image: a.image || null,
             source: a.source?.name || 'News',
-            time: timeStr,
+            time: dateStr,
             timestamp: pubDate.getTime()
           });
         });
       }
     });
 
+    // 最新排最前
     combined.sort((a, b) => b.timestamp - a.timestamp);
+
     return res.status(200).json({ articles: combined });
 
   } catch (err) {
