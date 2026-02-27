@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GAMEFLUX / 遊戲脈動</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+TC:wght@300;400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --card: #16161f;
+    --accent: #00ff88;
+    --accent2: #ff3366;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --border: rgba(255,255,255,0.06);
+    --glow: 0 0 30px rgba(0,255,136,0.15);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Noto Sans TC', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.4;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  }
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,10,15,0.9); backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 64px;
+  }
+  .logo { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: 4px; color: var(--accent); text-shadow: 0 0 20px rgba(0,255,136,0.5); }
+  .logo span { color: var(--accent2); }
+  .header-right { display: flex; align-items: center; gap: 1rem; }
+  .lang-toggle { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .lang-btn { padding: 6px 14px; background: none; border: none; color: var(--muted); font-family: 'Space Mono', monospace; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; }
+  .lang-btn.active { background: var(--accent); color: #000; font-weight: 700; }
+  .refresh-btn {
+    display: flex; align-items: center; gap: 6px; padding: 8px 16px;
+    background: transparent; border: 1px solid var(--accent); color: var(--accent);
+    font-family: 'Space Mono', monospace; font-size: 0.75rem; border-radius: 6px; cursor: pointer; transition: all 0.2s;
+  }
+  .refresh-btn:hover { background: var(--accent); color: #000; box-shadow: var(--glow); }
+  .refresh-btn.spinning svg { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* TICKER */
+  .ticker-wrap { background: var(--accent2); overflow: hidden; height: 32px; display: flex; align-items: center; }
+  .ticker-label { background: #000; color: var(--accent2); font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 2px; padding: 0 16px; height: 100%; display: flex; align-items: center; white-space: nowrap; flex-shrink: 0; }
+  .ticker-track { display: flex; animation: ticker 40s linear infinite; white-space: nowrap; }
+  .ticker-track span { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: #fff; padding: 0 48px; font-weight: 700; }
+  @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  /* CATEGORIES */
+  .categories { padding: 1.2rem 2rem; display: flex; gap: 0.5rem; flex-wrap: wrap; border-bottom: 1px solid var(--border); background: var(--surface); position: relative; z-index: 1; }
+  .cat-btn { padding: 6px 16px; border-radius: 100px; border: 1px solid var(--border); background: none; color: var(--muted); font-family: 'Noto Sans TC', sans-serif; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+  .cat-btn:hover, .cat-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,136,0.06); }
+
+  main { max-width: 1400px; margin: 0 auto; padding: 2rem; position: relative; z-index: 1; }
+  .status-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--muted); }
+  .live-dot { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); }
+  .live-dot::before { content: ''; width: 7px; height: 7px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 6px var(--accent); animation: pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .section-label { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 3px; color: var(--muted); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 12px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .section-label .dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); animation: pulse 2s ease-in-out infinite; }
+
+  /* NEWS GRID */
+  .news-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5rem; margin-bottom: 3rem; }
+  .news-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s; animation: fadeUp 0.4s ease both; }
+  .news-card:hover { transform: translateY(-4px); border-color: rgba(0,255,136,0.3); box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 20px rgba(0,255,136,0.08); }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+  .card-thumb { position: relative; aspect-ratio: 16/9; background: linear-gradient(135deg,#1a1a2e,#16213e); overflow: hidden; }
+  .card-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
+  .news-card:hover .card-thumb img { transform: scale(1.04); }
+  .card-tag { position: absolute; top: 10px; left: 10px; background: var(--accent2); color: #fff; font-family: 'Space Mono', monospace; font-size: 0.65rem; font-weight: 700; padding: 3px 10px; border-radius: 4px; letter-spacing: 1px; }
+  .video-badge { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 0.65rem; font-family: 'Space Mono', monospace; padding: 4px 10px; border-radius: 4px; display: flex; align-items: center; gap: 5px; cursor: pointer; transition: background 0.2s; }
+  .video-badge:hover { background: var(--accent2); }
+  .card-body { padding: 1.2rem; }
+  .card-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 0.6rem; }
+  .card-source { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; }
+  .card-date { font-size: 0.65rem; color: var(--muted); font-family: 'Space Mono', monospace; }
+  .card-dot { width: 3px; height: 3px; background: var(--muted); border-radius: 50%; }
+  .card-title { font-size: 1rem; font-weight: 700; line-height: 1.5; margin-bottom: 0.6rem; }
+  .card-summary { font-size: 0.82rem; color: var(--muted); line-height: 1.7; margin-bottom: 1rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .card-footer { display: flex; align-items: center; justify-content: space-between; }
+  .read-more { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: gap 0.2s; }
+  .read-more:hover { gap: 8px; }
+  .watch-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(255,51,102,0.1); border: 1px solid rgba(255,51,102,0.3); color: var(--accent2); border-radius: 6px; font-family: 'Space Mono', monospace; font-size: 0.68rem; cursor: pointer; transition: all 0.2s; }
+  .watch-btn:hover { background: var(--accent2); color: #fff; }
+
+  /* SKELETON */
+  .loading-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5rem; }
+  .skeleton { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .skel-thumb { aspect-ratio: 16/9; background: linear-gradient(90deg,var(--surface) 25%,#1c1c28 50%,var(--surface) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+  .skel-body { padding: 1.2rem; display: flex; flex-direction: column; gap: 10px; }
+  .skel-line { height: 12px; border-radius: 6px; background: linear-gradient(90deg,var(--surface) 25%,#1c1c28 50%,var(--surface) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+
+  /* ERROR STATE */
+  .error-state { text-align: center; padding: 4rem 2rem; color: var(--muted); font-family: 'Space Mono', monospace; }
+  .error-state .emoji { font-size: 3rem; margin-bottom: 1rem; }
+  .error-state p { font-size: 0.85rem; line-height: 1.7; }
+  .error-state a { color: var(--accent); }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.88); backdrop-filter: blur(10px); align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--card); border: 1px solid var(--border); border-radius: 16px; width: 90%; max-width: 840px; overflow: hidden; animation: modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes modalIn { from { opacity:0; transform: scale(0.9) translateY(20px); } to { opacity:1; transform: scale(1) translateY(0); } }
+  .modal-header { padding: 1rem 1.5rem; display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--border); }
+  .modal-title { font-size: 0.9rem; font-weight: 700; line-height: 1.4; color: var(--text); }
+  .modal-close { background: none; border: none; color: var(--muted); font-size: 1.4rem; cursor: pointer; line-height: 1; flex-shrink: 0; transition: color 0.2s; }
+  .modal-close:hover { color: var(--accent2); }
+  .modal-video { aspect-ratio: 16/9; background: #000; position: relative; }
+  .modal-video iframe { width: 100%; height: 100%; border: none; position: absolute; inset: 0; }
+  .modal-video-loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; color: var(--muted); font-family: 'Space Mono', monospace; font-size: 0.8rem; }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  .modal-footer { padding: 1rem 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; border-top: 1px solid var(--border); }
+  .related-chip { padding: 5px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 100px; font-size: 0.72rem; color: var(--muted); cursor: pointer; transition: all 0.2s; font-family: 'Space Mono', monospace; white-space: nowrap; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+  .related-chip:hover { border-color: var(--accent); color: var(--accent); }
+
+  footer { border-top: 1px solid var(--border); padding: 2rem; text-align: center; font-family: 'Space Mono', monospace; font-size: 0.7rem; color: var(--muted); position: relative; z-index: 1; }
+
+  @media (max-width: 600px) {
+    header { padding: 0 1rem; }
+    .logo { font-size: 1.5rem; }
+    main { padding: 1rem; }
+    .news-grid, .loading-grid { grid-template-columns: 1fr; }
+    .categories { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">GAME<span>FLUX</span></div>
+  <div class="header-right">
+    <div class="lang-toggle">
+      <button class="lang-btn active" onclick="setLang('zh')" id="btn-zh">中文</button>
+      <button class="lang-btn" onclick="setLang('en')" id="btn-en">EN</button>
+    </div>
+    <button class="refresh-btn" id="refreshBtn" onclick="loadNews(true)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M1 4v6h6"/><path d="M23 20v-6h-6"/>
+        <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
+      </svg>
+      <span id="refreshLabel">更新</span>
+    </button>
+  </div>
+</header>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker-label" id="tickerLabel">🎮 即時</div>
+  <div style="overflow:hidden;flex:1">
+    <div class="ticker-track" id="tickerTrack">
+      <span id="t1">載入新聞中...</span>
+      <span id="t2">載入新聞中...</span>
+    </div>
+  </div>
+</div>
+
+<!-- CATEGORIES -->
+<div class="categories" id="catBar">
+  <button class="cat-btn active" onclick="filterCat(this,'all')">全部 ALL</button>
+  <button class="cat-btn" onclick="filterCat(this,'nintendo')">Nintendo</button>
+  <button class="cat-btn" onclick="filterCat(this,'playstation')">PlayStation</button>
+  <button class="cat-btn" onclick="filterCat(this,'xbox')">Xbox</button>
+  <button class="cat-btn" onclick="filterCat(this,'pc')">PC</button>
+  <button class="cat-btn" onclick="filterCat(this,'esports')">電競 Esports</button>
+  <button class="cat-btn" onclick="filterCat(this,'mobile')">手遊 Mobile</button>
+</div>
+
+<main>
+  <div class="status-bar">
+    <span class="live-dot" id="liveLabel">即時更新中</span>
+    <span id="lastUpdated">—</span>
+  </div>
+  <div class="section-label"><span class="dot"></span><span id="sectionLabel">最新消息</span></div>
+  <div id="newsContainer">
+    <div class="loading-grid" id="loadingGrid">
+      <div class="skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line" style="width:40%"></div><div class="skel-line"></div><div class="skel-line" style="width:80%"></div><div class="skel-line" style="width:55%"></div></div></div>
+      <div class="skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line" style="width:40%"></div><div class="skel-line"></div><div class="skel-line" style="width:80%"></div><div class="skel-line" style="width:55%"></div></div></div>
+      <div class="skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line" style="width:40%"></div><div class="skel-line"></div><div class="skel-line" style="width:80%"></div><div class="skel-line" style="width:55%"></div></div></div>
+      <div class="skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line" style="width:40%"></div><div class="skel-line"></div><div class="skel-line" style="width:80%"></div><div class="skel-line" style="width:55%"></div></div></div>
+      <div class="skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line" style="width:40%"></div><div class="skel-line"></div><div class="skel-line" style="width:80%"></div><div class="skel-line" style="width:55%"></div></div></div>
+      <div class="skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line" style="width:40%"></div><div class="skel-line"></div><div class="skel-line" style="width:80%"></div><div class="skel-line" style="width:55%"></div></div></div>
+    </div>
+    <div class="news-grid" id="newsGrid" style="display:none"></div>
+  </div>
+</main>
+
+<!-- VIDEO MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">—</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-video" id="modalVideoWrap">
+      <div class="modal-video-loading" id="modalLoading">
+        <div class="spinner"></div>
+        <span id="modalLoadingText">搜尋影片中...</span>
+      </div>
+    </div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+
+<footer>
+  GAMEFLUX © 2026 &nbsp;·&nbsp; <span id="footerText">自動更新遊戲新聞平台</span> &nbsp;·&nbsp; Powered by Claude AI
+</footer>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────
+let currentLang = 'zh';
+let currentCat = 'all';
+let allNews = [];
+
+const CAT_KEYWORDS = {
+  nintendo: ['nintendo', 'switch', '任天堂'],
+  playstation: ['playstation', 'sony', 'ps5', 'ps6'],
+  xbox: ['xbox', 'microsoft'],
+  pc: ['steam', 'pc', 'valve', 'epic'],
+  esports: ['esports', '電競', 'lck', 'lpl', 't1', 'gen.g', 'riot', 'worlds', 'league of legends', 'counter-strike'],
+  mobile: ['mobile', '手遊', 'android', 'ios', 'genshin', 'honor of kings'],
+};
+
+const i18n = {
+  zh: {
+    refresh: '更新', liveLabel: '即時更新中', section: '最新消息',
+    readMore: '閱讀全文 →', watch: '▶ 觀看影片',
+    footerText: '自動更新遊戲新聞平台', ticker: '🎮 即時',
+    loading: '搜尋影片中...', related: '相關影片：',
+    lastUpdated: '最後更新', nextRefresh: '下次更新',
+    errorTitle: '無法載入新聞', errorMsg: '請確認 API 金鑰設定正確，或稍後再試。',
+    noVideo: '前往 YouTube 搜尋',
+  },
+  en: {
+    refresh: 'Refresh', liveLabel: 'Live Updates', section: 'LATEST NEWS',
+    readMore: 'Read more →', watch: '▶ Watch Video',
+    footerText: 'Auto-updating Gaming News Platform', ticker: '🎮 LIVE',
+    loading: 'Searching video...', related: 'Related: ',
+    lastUpdated: 'Last updated', nextRefresh: 'Next refresh',
+    errorTitle: 'Could not load news', errorMsg: 'Please check your API key configuration and try again.',
+    noVideo: 'Search on YouTube',
+  }
+};
+
+// ─── LANG ────────────────────────────────────────────────
+function setLang(lang) {
+  currentLang = lang;
+  document.getElementById('btn-zh').classList.toggle('active', lang === 'zh');
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.documentElement.lang = lang === 'zh' ? 'zh-TW' : 'en';
+  const t = i18n[lang];
+  document.getElementById('refreshLabel').textContent = t.refresh;
+  document.getElementById('liveLabel').textContent = t.liveLabel;
+  document.getElementById('sectionLabel').textContent = t.section;
+  document.getElementById('footerText').textContent = t.footerText;
+  document.getElementById('tickerLabel').textContent = t.ticker;
+  if (allNews.length) renderNews(filteredNews());
+}
+
+// ─── CATEGORY ────────────────────────────────────────────
+function filterCat(btn, cat) {
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentCat = cat;
+  renderNews(filteredNews());
+}
+
+function filteredNews() {
+  if (currentCat === 'all') return allNews;
+  const keywords = CAT_KEYWORDS[currentCat] || [];
+  return allNews.filter(n => {
+    const text = (n.title + ' ' + n.summary + ' ' + n.source).toLowerCase();
+    return keywords.some(k => text.includes(k));
+  });
+}
+
+// ─── TICKER ──────────────────────────────────────────────
+function updateTicker(articles) {
+  const titles = articles.slice(0, 8).map(a => a.title);
+  const doubled = [...titles, ...titles];
+  const spans = doubled.map(t => `<span>${t}</span>`).join('');
+  document.getElementById('tickerTrack').innerHTML = spans;
+}
+
+// ─── RENDER NEWS ─────────────────────────────────────────
+function renderNews(articles) {
+  const t = i18n[currentLang];
+  const grid = document.getElementById('newsGrid');
+  document.getElementById('loadingGrid').style.display = 'none';
+  grid.style.display = 'grid';
+
+  if (!articles.length) {
+    grid.innerHTML = `<div class="error-state" style="grid-column:1/-1"><div class="emoji">🔍</div><p>${currentLang === 'zh' ? '此分類目前沒有新聞' : 'No news in this category'}</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = articles.map((item, i) => {
+    const imgTag = item.image
+      ? `<img src="${item.image}" alt="" loading="lazy" onerror="this.style.display='none'">`
+      : '';
+    const tag = getTag(item.title + item.summary);
+    return `
+      <div class="news-card" style="animation-delay:${i * 0.06}s">
+        <div class="card-thumb">
+          ${imgTag}
+          <span class="card-tag">${tag}</span>
+          <div class="video-badge" onclick="openVideo(${item.id}, \`${escHtml(item.title)}\`)">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            VIDEO
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-meta">
+            <span class="card-source">${item.source}</span>
+            <span class="card-dot"></span>
+            <span class="card-date">${item.date}</span>
+          </div>
+          <div class="card-title">${item.title}</div>
+          <div class="card-summary">${item.summary || ''}</div>
+          <div class="card-footer">
+            <a class="read-more" href="${item.url}" target="_blank" rel="noopener">${t.readMore}</a>
+            <button class="watch-btn" onclick="openVideo(${item.id}, \`${escHtml(item.title)}\`)">${t.watch}</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function getTag(text) {
+  const t = text.toLowerCase();
+  if (t.includes('leak') || t.includes('外洩')) return 'LEAK';
+  if (t.includes('review') || t.includes('評測')) return 'REVIEW';
+  if (t.includes('esports') || t.includes('電競') || t.includes('lck') || t.includes('worlds')) return 'ESPORTS';
+  if (t.includes('dlc') || t.includes('update') || t.includes('更新')) return 'UPDATE';
+  if (t.includes('sale') || t.includes('銷售') || t.includes('record') || t.includes('記錄')) return 'RECORD';
+  return 'NEWS';
+}
+
+function escHtml(str) {
+  return str.replace(/`/g, "'").replace(/\\/g, '');
+}
+
+// ─── LOAD NEWS ────────────────────────────────────────────
+async function loadNews(manual = false) {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  document.getElementById('loadingGrid').style.display = 'grid';
+  document.getElementById('newsGrid').style.display = 'none';
+
+  try {
+    const resp = await fetch(`/api/news?lang=${currentLang}`);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+
+    if (data.error) throw new Error(data.error);
+    allNews = data.articles || [];
+
+    updateTicker(allNews);
+    renderNews(filteredNews());
+
+    const now = new Date();
+    const t = i18n[currentLang];
+    document.getElementById('lastUpdated').textContent =
+      `${t.lastUpdated}: ${now.toLocaleTimeString(currentLang === 'zh' ? 'zh-TW' : 'en-US', {hour:'2-digit', minute:'2-digit'})}`;
+
+  } catch (err) {
+    const t = i18n[currentLang];
+    document.getElementById('loadingGrid').style.display = 'none';
+    document.getElementById('newsGrid').style.display = 'grid';
+    document.getElementById('newsGrid').innerHTML = `
+      <div class="error-state" style="grid-column:1/-1">
+        <div class="emoji">⚠️</div>
+        <p><strong>${t.errorTitle}</strong><br>${t.errorMsg}<br><br>
+        <small style="opacity:0.6">${err.message}</small></p>
+      </div>`;
+  }
+
+  btn.classList.remove('spinning');
+}
+
+// ─── VIDEO MODAL ─────────────────────────────────────────
+async function openVideo(id, title) {
+  const t = i18n[currentLang];
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalLoadingText').textContent = t.loading;
+
+  // Reset modal
+  const wrap = document.getElementById('modalVideoWrap');
+  const existingIframe = wrap.querySelector('iframe');
+  if (existingIframe) existingIframe.remove();
+  document.getElementById('modalLoading').style.display = 'flex';
+  document.getElementById('modalFooter').innerHTML = '';
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  try {
+    const resp = await fetch(`/api/video?q=${encodeURIComponent(title)}`);
+    const data = await resp.json();
+
+    if (data.videos && data.videos.length > 0) {
+      loadVideoById(data.videos[0].id);
+
+      // Related chips
+      const footer = document.getElementById('modalFooter');
+      if (data.videos.length > 1) {
+        footer.innerHTML = `<span style="color:var(--muted);font-family:'Space Mono',monospace;font-size:0.7rem;flex-shrink:0">${t.related}</span>` +
+          data.videos.slice(1).map(v =>
+            `<button class="related-chip" onclick="loadVideoById('${v.id}')" title="${v.title}">${v.channel}</button>`
+          ).join('');
+      }
+    } else {
+      throw new Error('no results');
+    }
+  } catch {
+    // Fallback: YouTube search link
+    document.getElementById('modalLoading').style.display = 'none';
+    const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(title)}`;
+    const btn = document.createElement('div');
+    btn.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;background:#000;';
+    btn.innerHTML = `
+      <div style="font-size:2.5rem">🎬</div>
+      <a href="${ytUrl}" target="_blank" rel="noopener"
+        style="display:inline-flex;align-items:center;gap:8px;background:#ff0000;color:#fff;border-radius:8px;padding:12px 28px;font-family:'Space Mono',monospace;font-size:0.85rem;font-weight:bold;text-decoration:none;letter-spacing:1px;">
+        ▶ ${t.noVideo}
+      </a>`;
+    wrap.appendChild(btn);
+  }
+}
+
+function loadVideoById(videoId) {
+  const wrap = document.getElementById('modalVideoWrap');
+  document.getElementById('modalLoading').style.display = 'none';
+
+  // Remove any previous iframe or fallback
+  wrap.querySelectorAll('iframe, div:not(#modalLoading)').forEach(el => el.remove());
+
+  const iframe = document.createElement('iframe');
+  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+  iframe.allow = 'autoplay; encrypted-media; fullscreen';
+  iframe.allowFullscreen = true;
+  wrap.appendChild(iframe);
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+  // Stop video
+  const wrap = document.getElementById('modalVideoWrap');
+  wrap.querySelectorAll('iframe').forEach(el => el.remove());
+  document.getElementById('modalLoading').style.display = 'flex';
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+// ─── INIT ─────────────────────────────────────────────────
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+// Auto-refresh every 10 minutes
+setInterval(() => loadNews(), 10 * 60 * 1000);
+loadNews();
+</script>
+</body>
+</html>
