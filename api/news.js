@@ -1,52 +1,46 @@
-// api/news.js — 全球遊戲情報中心 (中英混合 + 主流媒體版)
+// api/news.js — 嚴格限制 10 大主流媒體版
 export default async function handler(req, res) {
-  // 允許跨域請求
   res.setHeader('Access-Control-Allow-Origin', '*');
-  // Vercel 邊緣快取 10 分鐘，減少對 GNews API 額度的消耗
   res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=300');
 
   const apiKey = process.env.GNEWS_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'GNEWS_API_KEY not set in Vercel environment variables.' });
-  }
+  if (!apiKey) return res.status(500).json({ error: 'GNEWS_API_KEY not set' });
 
-  // 設定搜尋配置
-  // 1. 中文：鎖定台灣 (tw)，過濾巴哈、IGN、4Gamers
-  // 2. 英文：鎖定美國 (us)，過濾 IGN、GameSpot、PC Gamer、Eurogamer
+  // 嚴格定義 10 大來源
+  // 中文：巴哈姆特, 4Gamers, 遊戲基地, 電玩宅速配, IGN Taiwan
+  // 英文：IGN, GameSpot, PC Gamer, Eurogamer, GamesRadar
   const configs = [
     { 
       lang: 'zh', 
       country: 'tw', 
-      q: '(新作 OR 評測 OR 熱門) AND (IGN OR 巴哈姆特 OR 4Gamers OR 遊戲基地)' 
+      q: '遊戲 AND ("巴哈姆特" OR "4Gamers" OR "遊戲基地" OR "電玩宅速配" OR "IGN")' 
     },
     { 
       lang: 'en', 
-      country: 'us', 
-      q: '(New Release OR Review OR Trending) AND (IGN OR GameSpot OR PC Gamer OR Eurogamer)' 
+      q: 'gaming AND ("IGN" OR "GameSpot" OR "PC Gamer" OR "Eurogamer" OR "GamesRadar")' 
     }
   ];
 
   try {
-    // 同時執行中、英兩組 API 請求
     const requests = configs.map(conf => {
-      const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(conf.q)}&lang=${conf.lang}&country=${conf.country}&max=10&apikey=${apiKey}`;
+      let url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(conf.q)}&lang=${conf.lang}&max=15&apikey=${apiKey}`;
+      if (conf.country) url += `&country=${conf.country}`;
+      
       return fetch(url).then(async r => {
         const d = await r.json();
-        if (!r.ok) return { error: d.errors || 'API limit reached' };
+        if (!r.ok) return { error: d.errors || 'API limit' };
         return d;
       });
     });
 
     const results = await Promise.all(requests);
-    
-    let combinedArticles = [];
+    let combined = [];
 
     results.forEach(data => {
-      // 容錯檢查：確保該請求成功且有文章資料
-      if (data && data.articles && Array.isArray(data.articles)) {
+      if (data && data.articles) {
         data.articles.forEach(a => {
-          combinedArticles.push({
-            title: a.title || 'No Title',
+          combined.push({
+            title: a.title,
             summary: a.description || '',
             url: a.url,
             image: a.image || null,
@@ -58,21 +52,16 @@ export default async function handler(req, res) {
       }
     });
 
-    // 如果完全沒有抓到任何資料（可能是兩邊都報錯）
-    if (combinedArticles.length === 0) {
-      // 檢查是否有 API 報錯訊息
-      const errorMsg = results.find(r => r.error)?.error || 'No news found';
-      return res.status(500).json({ error: errorMsg });
+    // 依發布時間排序
+    combined.sort((a, b) => b.timestamp - a.timestamp);
+
+    if (combined.length === 0) {
+      return res.status(404).json({ error: "No articles found from specified top 10 sources." });
     }
 
-    // 依發布時間排序（最新的排在最前面）
-    combinedArticles.sort((a, b) => b.timestamp - a.timestamp);
-
-    // 回傳給前端
-    return res.status(200).json({ articles: combinedArticles });
+    return res.status(200).json({ articles: combined });
 
   } catch (err) {
-    console.error('Server Error:', err.message);
-    return res.status(500).json({ error: 'Internal Server Error: ' + err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
