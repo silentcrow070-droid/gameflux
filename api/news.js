@@ -1,43 +1,47 @@
-// api/news.js — 優化版
+// api/news.js — 同時抓取中英文主流媒體新聞
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  // 加入快取機制：Vercel 會緩存結果 10 分鐘，減少消耗 API 次數
   res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=300');
 
-  const { lang = 'zh' } = req.query;
   const apiKey = process.env.GNEWS_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'GNEWS_API_KEY not set' });
 
-  if (!apiKey) {
-    return res.status(500).json({ error: 'GNEWS_API_KEY not set' });
-  }
-
-  const isZh = lang === 'zh';
-  const query = isZh ? '遊戲 OR 電競 OR Nintendo OR PlayStation OR Xbox' : 'gaming OR esports OR Nintendo OR PlayStation OR Xbox';
-  
-  // 動態調整國家：中文對應台灣(tw)，英文對應美國(us)
-  const country = isZh ? 'tw' : 'us'; 
-  const language = isZh ? 'zh' : 'en';
+  // 定義搜尋條件
+  const configs = [
+    { lang: 'zh', country: 'tw', q: '(新作 OR 評測 OR 熱門) AND (IGN OR 巴哈姆特 OR 4Gamers OR 遊戲基地)' },
+    { lang: 'en', country: 'us', q: '(New Release OR Review OR Trending) AND (IGN OR GameSpot OR PC Gamer OR Eurogamer)' }
+  ];
 
   try {
-    const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=${language}&country=${country}&max=12&apikey=${apiKey}`;
-    const response = await fetch(url);
-    const data = await response.json();
+    // 同時執行兩個請求
+    const requests = configs.map(conf => {
+      const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(conf.q)}&lang=${conf.lang}&country=${conf.country}&max=10&apikey=${apiKey}`;
+      return fetch(url).then(r => r.json());
+    });
 
-    if (!response.ok || !data.articles) {
-      return res.status(500).json({ error: data.errors || 'GNews error' });
-    }
+    const results = await Promise.all(requests);
+    
+    // 合併並整理資料
+    let combinedArticles = [];
+    results.forEach(data => {
+      if (data.articles) {
+        data.articles.forEach(a => {
+          combinedArticles.push({
+            title: a.title,
+            summary: a.description || '',
+            url: a.url,
+            image: a.image || null,
+            source: a.source?.name || 'News',
+            date: a.publishedAt?.slice(0, 10) || '',
+            timestamp: new Date(a.publishedAt).getTime() // 用於排序
+          });
+        });
+      });
 
-    const articles = data.articles.map((a, i) => ({
-      id: i + 1,
-      title: a.title,
-      summary: a.description || '',
-      url: a.url,
-      image: a.image || null,
-      source: a.source?.name || 'News',
-      date: a.publishedAt?.slice(0, 10) || '',
-    }));
+    // 依時間排序（最新的在前）
+    combinedArticles.sort((a, b) => b.timestamp - a.timestamp);
 
-    return res.status(200).json({ articles });
+    return res.status(200).json({ articles: combinedArticles });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
