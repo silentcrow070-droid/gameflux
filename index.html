@@ -45,14 +45,12 @@
   .refresh-btn.spinning svg { animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* TICKER */
   .ticker-wrap { background: var(--accent2); overflow: hidden; height: 32px; display: flex; align-items: center; }
   .ticker-label { background: #000; color: var(--accent2); font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 2px; padding: 0 16px; height: 100%; display: flex; align-items: center; white-space: nowrap; flex-shrink: 0; }
   .ticker-track { display: flex; animation: ticker 40s linear infinite; white-space: nowrap; }
   .ticker-track span { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: #fff; padding: 0 48px; font-weight: 700; }
   @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
-  /* CATEGORIES */
   .categories { padding: 1.2rem 2rem; display: flex; gap: 0.5rem; flex-wrap: wrap; border-bottom: 1px solid var(--border); background: var(--surface); position: relative; z-index: 1; }
   .cat-btn { padding: 6px 16px; border-radius: 100px; border: 1px solid var(--border); background: none; color: var(--muted); font-family: 'Noto Sans TC', sans-serif; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
   .cat-btn:hover, .cat-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,136,0.06); }
@@ -66,7 +64,6 @@
   .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
   .section-label .dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); animation: pulse 2s ease-in-out infinite; }
 
-  /* NEWS GRID */
   .news-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5rem; margin-bottom: 3rem; }
   .news-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s; animation: fadeUp 0.4s ease both; }
   .news-card:hover { transform: translateY(-4px); border-color: rgba(0,255,136,0.3); box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 20px rgba(0,255,136,0.08); }
@@ -90,7 +87,6 @@
   .watch-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(255,51,102,0.1); border: 1px solid rgba(255,51,102,0.3); color: var(--accent2); border-radius: 6px; font-family: 'Space Mono', monospace; font-size: 0.68rem; cursor: pointer; transition: all 0.2s; }
   .watch-btn:hover { background: var(--accent2); color: #fff; }
 
-  /* SKELETON */
   .loading-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5rem; }
   .skeleton { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
   .skel-thumb { aspect-ratio: 16/9; background: linear-gradient(90deg,var(--surface) 25%,#1c1c28 50%,var(--surface) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
@@ -98,13 +94,10 @@
   .skel-line { height: 12px; border-radius: 6px; background: linear-gradient(90deg,var(--surface) 25%,#1c1c28 50%,var(--surface) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
   @keyframes shimmer { to { background-position: -200% 0; } }
 
-  /* ERROR STATE */
   .error-state { text-align: center; padding: 4rem 2rem; color: var(--muted); font-family: 'Space Mono', monospace; }
   .error-state .emoji { font-size: 3rem; margin-bottom: 1rem; }
   .error-state p { font-size: 0.85rem; line-height: 1.7; }
-  .error-state a { color: var(--accent); }
 
-  /* MODAL */
   .modal-overlay { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.88); backdrop-filter: blur(10px); align-items: center; justify-content: center; }
   .modal-overlay.open { display: flex; }
   .modal { background: var(--card); border: 1px solid var(--border); border-radius: 16px; width: 90%; max-width: 840px; overflow: hidden; animation: modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1); }
@@ -151,18 +144,15 @@
   </div>
 </header>
 
-<!-- TICKER -->
 <div class="ticker-wrap">
   <div class="ticker-label" id="tickerLabel">🎮 即時</div>
   <div style="overflow:hidden;flex:1">
     <div class="ticker-track" id="tickerTrack">
-      <span id="t1">載入新聞中...</span>
-      <span id="t2">載入新聞中...</span>
+      <span id="t1">載入中...</span>
     </div>
   </div>
 </div>
 
-<!-- CATEGORIES -->
 <div class="categories" id="catBar">
   <button class="cat-btn active" onclick="filterCat(this,'all')">全部 ALL</button>
   <button class="cat-btn" onclick="filterCat(this,'nintendo')">Nintendo</button>
@@ -181,18 +171,14 @@
   <div class="section-label"><span class="dot"></span><span id="sectionLabel">最新消息</span></div>
   <div id="newsContainer">
     <div class="loading-grid" id="loadingGrid">
-      <div class="skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line" style="width:40%"></div><div class="skel-line"></div><div class="skel-line" style="width:80%"></div><div class="skel-line" style="width:55%"></div></div></div>
-      <div class="skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line" style="width:40%"></div><div class="skel-line"></div><div class="skel-line" style="width:80%"></div><div class="skel-line" style="width:55%"></div></div></div>
-      <div class="skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line" style="width:40%"></div><div class="skel-line"></div><div class="skel-line" style="width:80%"></div><div class="skel-line" style="width:55%"></div></div></div>
-      <div class="skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line" style="width:40%"></div><div class="skel-line"></div><div class="skel-line" style="width:80%"></div><div class="skel-line" style="width:55%"></div></div></div>
-      <div class="skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line" style="width:40%"></div><div class="skel-line"></div><div class="skel-line" style="width:80%"></div><div class="skel-line" style="width:55%"></div></div></div>
-      <div class="skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line" style="width:40%"></div><div class="skel-line"></div><div class="skel-line" style="width:80%"></div><div class="skel-line" style="width:55%"></div></div></div>
+      <div class="skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line" style="width:40%"></div><div class="skel-line"></div><div class="skel-line" style="width:80%"></div></div></div>
+      <div class="skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line" style="width:40%"></div><div class="skel-line"></div><div class="skel-line" style="width:80%"></div></div></div>
+      <div class="skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line" style="width:40%"></div><div class="skel-line"></div><div class="skel-line" style="width:80%"></div></div></div>
     </div>
     <div class="news-grid" id="newsGrid" style="display:none"></div>
   </div>
 </main>
 
-<!-- VIDEO MODAL -->
 <div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
   <div class="modal">
     <div class="modal-header">
@@ -214,7 +200,6 @@
 </footer>
 
 <script>
-// ─── STATE ───────────────────────────────────────────────
 let currentLang = 'zh';
 let currentCat = 'all';
 let allNews = [];
@@ -234,37 +219,36 @@ const i18n = {
     readMore: '閱讀全文 →', watch: '▶ 觀看影片',
     footerText: '自動更新遊戲新聞平台', ticker: '🎮 即時',
     loading: '搜尋影片中...', related: '相關影片：',
-    lastUpdated: '最後更新', nextRefresh: '下次更新',
-    errorTitle: '無法載入新聞', errorMsg: '請確認 API 金鑰設定正確，或稍後再試。',
-    noVideo: '前往 YouTube 搜尋',
+    lastUpdated: '最後更新', errorTitle: '無法載入新聞',
+    errorMsg: '請確認 API 金鑰設定正確，或稍後再試。', noVideo: '前往 YouTube 搜尋',
   },
   en: {
     refresh: 'Refresh', liveLabel: 'Live Updates', section: 'LATEST NEWS',
     readMore: 'Read more →', watch: '▶ Watch Video',
     footerText: 'Auto-updating Gaming News Platform', ticker: '🎮 LIVE',
     loading: 'Searching video...', related: 'Related: ',
-    lastUpdated: 'Last updated', nextRefresh: 'Next refresh',
-    errorTitle: 'Could not load news', errorMsg: 'Please check your API key configuration and try again.',
-    noVideo: 'Search on YouTube',
+    lastUpdated: 'Last updated', errorTitle: 'Could not load news',
+    errorMsg: 'Check API keys or try again later.', noVideo: 'Search on YouTube',
   }
 };
 
-// ─── LANG ────────────────────────────────────────────────
-function setLang(lang) {
+async function setLang(lang) {
+  if (currentLang === lang) return;
   currentLang = lang;
+  
   document.getElementById('btn-zh').classList.toggle('active', lang === 'zh');
   document.getElementById('btn-en').classList.toggle('active', lang === 'en');
-  document.documentElement.lang = lang === 'zh' ? 'zh-TW' : 'en';
+  
   const t = i18n[lang];
   document.getElementById('refreshLabel').textContent = t.refresh;
   document.getElementById('liveLabel').textContent = t.liveLabel;
   document.getElementById('sectionLabel').textContent = t.section;
   document.getElementById('footerText').textContent = t.footerText;
   document.getElementById('tickerLabel').textContent = t.ticker;
-  if (allNews.length) renderNews(filteredNews());
+
+  await loadNews(true);
 }
 
-// ─── CATEGORY ────────────────────────────────────────────
 function filterCat(btn, cat) {
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -281,15 +265,13 @@ function filteredNews() {
   });
 }
 
-// ─── TICKER ──────────────────────────────────────────────
 function updateTicker(articles) {
   const titles = articles.slice(0, 8).map(a => a.title);
+  if (!titles.length) return;
   const doubled = [...titles, ...titles];
-  const spans = doubled.map(t => `<span>${t}</span>`).join('');
-  document.getElementById('tickerTrack').innerHTML = spans;
+  document.getElementById('tickerTrack').innerHTML = doubled.map(t => `<span>${t}</span>`).join('');
 }
 
-// ─── RENDER NEWS ─────────────────────────────────────────
 function renderNews(articles) {
   const t = i18n[currentLang];
   const grid = document.getElementById('newsGrid');
@@ -297,57 +279,32 @@ function renderNews(articles) {
   grid.style.display = 'grid';
 
   if (!articles.length) {
-    grid.innerHTML = `<div class="error-state" style="grid-column:1/-1"><div class="emoji">🔍</div><p>${currentLang === 'zh' ? '此分類目前沒有新聞' : 'No news in this category'}</p></div>`;
+    grid.innerHTML = `<div class="error-state" style="grid-column:1/-1"><div class="emoji">🔍</div><p>${currentLang === 'zh' ? '目前沒有相關新聞' : 'No news found'}</p></div>`;
     return;
   }
 
   grid.innerHTML = articles.map((item, i) => {
-    const imgTag = item.image
-      ? `<img src="${item.image}" alt="" loading="lazy" onerror="this.style.display='none'">`
-      : '';
-    const tag = getTag(item.title + item.summary);
+    const imgTag = item.image ? `<img src="${item.image}" alt="" onerror="this.style.display='none'">` : '';
     return `
-      <div class="news-card" style="animation-delay:${i * 0.06}s">
-        <div class="card-thumb">
-          ${imgTag}
-          <span class="card-tag">${tag}</span>
-          <div class="video-badge" onclick="openVideo(${item.id}, \`${escHtml(item.title)}\`)">
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            VIDEO
-          </div>
+      <div class="news-card" style="animation-delay:${i * 0.05}s">
+        <div class="card-thumb">${imgTag}<span class="card-tag">NEWS</span>
+          <div class="video-badge" onclick="openVideo(\`${escHtml(item.title)}\`)">VIDEO</div>
         </div>
         <div class="card-body">
-          <div class="card-meta">
-            <span class="card-source">${item.source}</span>
-            <span class="card-dot"></span>
-            <span class="card-date">${item.date}</span>
-          </div>
+          <div class="card-meta"><span class="card-source">${item.source}</span><span class="card-dot"></span><span class="card-date">${item.date}</span></div>
           <div class="card-title">${item.title}</div>
-          <div class="card-summary">${item.summary || ''}</div>
+          <div class="card-summary">${item.summary}</div>
           <div class="card-footer">
-            <a class="read-more" href="${item.url}" target="_blank" rel="noopener">${t.readMore}</a>
-            <button class="watch-btn" onclick="openVideo(${item.id}, \`${escHtml(item.title)}\`)">${t.watch}</button>
+            <a class="read-more" href="${item.url}" target="_blank">${t.readMore}</a>
+            <button class="watch-btn" onclick="openVideo(\`${escHtml(item.title)}\`)">${t.watch}</button>
           </div>
         </div>
       </div>`;
   }).join('');
 }
 
-function getTag(text) {
-  const t = text.toLowerCase();
-  if (t.includes('leak') || t.includes('外洩')) return 'LEAK';
-  if (t.includes('review') || t.includes('評測')) return 'REVIEW';
-  if (t.includes('esports') || t.includes('電競') || t.includes('lck') || t.includes('worlds')) return 'ESPORTS';
-  if (t.includes('dlc') || t.includes('update') || t.includes('更新')) return 'UPDATE';
-  if (t.includes('sale') || t.includes('銷售') || t.includes('record') || t.includes('記錄')) return 'RECORD';
-  return 'NEWS';
-}
+function escHtml(str) { return str.replace(/`/g, "'").replace(/"/g, '&quot;'); }
 
-function escHtml(str) {
-  return str.replace(/`/g, "'").replace(/\\/g, '');
-}
-
-// ─── LOAD NEWS ────────────────────────────────────────────
 async function loadNews(manual = false) {
   const btn = document.getElementById('refreshBtn');
   btn.classList.add('spinning');
@@ -356,115 +313,60 @@ async function loadNews(manual = false) {
 
   try {
     const resp = await fetch(`/api/news?lang=${currentLang}`);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
-
     if (data.error) throw new Error(data.error);
-    allNews = data.articles || [];
 
+    allNews = data.articles || [];
     updateTicker(allNews);
     renderNews(filteredNews());
 
     const now = new Date();
-    const t = i18n[currentLang];
-    document.getElementById('lastUpdated').textContent =
-      `${t.lastUpdated}: ${now.toLocaleTimeString(currentLang === 'zh' ? 'zh-TW' : 'en-US', {hour:'2-digit', minute:'2-digit'})}`;
-
+    document.getElementById('lastUpdated').textContent = `${i18n[currentLang].lastUpdated}: ${now.toLocaleTimeString()}`;
   } catch (err) {
-    const t = i18n[currentLang];
-    document.getElementById('loadingGrid').style.display = 'none';
     document.getElementById('newsGrid').style.display = 'grid';
-    document.getElementById('newsGrid').innerHTML = `
-      <div class="error-state" style="grid-column:1/-1">
-        <div class="emoji">⚠️</div>
-        <p><strong>${t.errorTitle}</strong><br>${t.errorMsg}<br><br>
-        <small style="opacity:0.6">${err.message}</small></p>
-      </div>`;
+    document.getElementById('newsGrid').innerHTML = `<div class="error-state" style="grid-column:1/-1"><p>${err.message}</p></div>`;
   }
-
   btn.classList.remove('spinning');
 }
 
-// ─── VIDEO MODAL ─────────────────────────────────────────
-async function openVideo(id, title) {
+async function openVideo(title) {
   const t = i18n[currentLang];
   document.getElementById('modalTitle').textContent = title;
-  document.getElementById('modalLoadingText').textContent = t.loading;
-
-  // Reset modal
-  const wrap = document.getElementById('modalVideoWrap');
-  const existingIframe = wrap.querySelector('iframe');
-  if (existingIframe) existingIframe.remove();
-  document.getElementById('modalLoading').style.display = 'flex';
-  document.getElementById('modalFooter').innerHTML = '';
   document.getElementById('modalOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
+  const wrap = document.getElementById('modalVideoWrap');
+  wrap.querySelectorAll('iframe, .fallback').forEach(el => el.remove());
+  document.getElementById('modalLoading').style.display = 'flex';
 
   try {
     const resp = await fetch(`/api/video?q=${encodeURIComponent(title)}`);
     const data = await resp.json();
-
-    if (data.videos && data.videos.length > 0) {
-      loadVideoById(data.videos[0].id);
-
-      // Related chips
-      const footer = document.getElementById('modalFooter');
-      if (data.videos.length > 1) {
-        footer.innerHTML = `<span style="color:var(--muted);font-family:'Space Mono',monospace;font-size:0.7rem;flex-shrink:0">${t.related}</span>` +
-          data.videos.slice(1).map(v =>
-            `<button class="related-chip" onclick="loadVideoById('${v.id}')" title="${v.title}">${v.channel}</button>`
-          ).join('');
-      }
-    } else {
-      throw new Error('no results');
-    }
-  } catch {
-    // Fallback: YouTube search link
+    if (!data.videos?.length) throw new Error();
+    
     document.getElementById('modalLoading').style.display = 'none';
-    const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(title)}`;
-    const btn = document.createElement('div');
-    btn.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;background:#000;';
-    btn.innerHTML = `
-      <div style="font-size:2.5rem">🎬</div>
-      <a href="${ytUrl}" target="_blank" rel="noopener"
-        style="display:inline-flex;align-items:center;gap:8px;background:#ff0000;color:#fff;border-radius:8px;padding:12px 28px;font-family:'Space Mono',monospace;font-size:0.85rem;font-weight:bold;text-decoration:none;letter-spacing:1px;">
-        ▶ ${t.noVideo}
-      </a>`;
-    wrap.appendChild(btn);
+    const iframe = document.createElement('iframe');
+    iframe.src = `https://www.youtube.com/embed/${data.videos[0].id}?autoplay=1`;
+    iframe.allow = "autoplay; encrypted-media; fullscreen";
+    wrap.appendChild(iframe);
+  } catch {
+    document.getElementById('modalLoading').style.display = 'none';
+    const fb = document.createElement('div');
+    fb.className = 'fallback';
+    fb.style.cssText = "position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#000";
+    fb.innerHTML = `<a href="https://www.youtube.com/results?search_query=${encodeURIComponent(title)}" target="_blank" style="color:var(--accent)">${t.noVideo}</a>`;
+    wrap.appendChild(fb);
   }
-}
-
-function loadVideoById(videoId) {
-  const wrap = document.getElementById('modalVideoWrap');
-  document.getElementById('modalLoading').style.display = 'none';
-
-  // Remove any previous iframe or fallback
-  wrap.querySelectorAll('iframe, div:not(#modalLoading)').forEach(el => el.remove());
-
-  const iframe = document.createElement('iframe');
-  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-  iframe.allow = 'autoplay; encrypted-media; fullscreen';
-  iframe.allowFullscreen = true;
-  wrap.appendChild(iframe);
 }
 
 function closeModal() {
   document.getElementById('modalOverlay').classList.remove('open');
   document.body.style.overflow = '';
-  // Stop video
-  const wrap = document.getElementById('modalVideoWrap');
-  wrap.querySelectorAll('iframe').forEach(el => el.remove());
-  document.getElementById('modalLoading').style.display = 'flex';
+  document.getElementById('modalVideoWrap').querySelectorAll('iframe').forEach(f => f.remove());
 }
 
-function handleOverlayClick(e) {
-  if (e.target === document.getElementById('modalOverlay')) closeModal();
-}
-
-// ─── INIT ─────────────────────────────────────────────────
+function handleOverlayClick(e) { if (e.target.id === 'modalOverlay') closeModal(); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-// Auto-refresh every 10 minutes
-setInterval(() => loadNews(), 10 * 60 * 1000);
+
 loadNews();
 </script>
 </body>
