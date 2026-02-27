@@ -1,67 +1,40 @@
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=900');
+  // 強制 Vercel 快取 1 小時，極大化節省額度
+  res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=1800');
 
   const apiKey = process.env.GNEWS_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'GNEWS_API_KEY not set' });
+  if (!apiKey) return res.status(500).json({ error: 'Missing API Key' });
 
-  // 定義這 10 大網站的網域關鍵字（這是最準確的抓取邏輯）
-  const whiteList = [
-    'gamer.com.tw', '4gamers.com.tw', 'gamebase.com.tw', 'ign.com', 
-    'gamespot.com', 'pcgamer.com', 'eurogamer.net', 'gamesradar.com'
-  ];
-
-  const now = new Date();
-  const threeDaysAgo = new Date(now.getTime() - (72 * 60 * 60 * 1000));
-  const fromDate = threeDaysAgo.toISOString().split('.')[0] + 'Z'; 
-
-  const configs = [
-    { lang: 'zh', country: 'tw', q: '遊戲' }, // 抓取台灣所有遊戲新聞
-    { lang: 'en', q: 'gaming' }               // 抓取全球所有遊戲新聞
-  ];
+  // 合併關鍵字：同時搜尋中英文內容
+  const query = '遊戲 OR gaming OR 巴哈姆特 OR IGN OR GameSpot';
 
   try {
-    const requests = configs.map(conf => {
-      // 增加 max 數量至 50，確保過濾後還有足夠文章
-      const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(conf.q)}&lang=${conf.lang}&from=${fromDate}&max=50&apikey=${apiKey}${conf.country ? `&country=${conf.country}` : ''}`;
-      return fetch(url).then(r => r.json());
-    });
+    // 每次只發送一個請求
+    const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=zh&max=20&apikey=${apiKey}`;
+    const response = await fetch(url);
+    const data = await response.json();
 
-    const results = await Promise.all(requests);
-    let filteredArticles = [];
-
-    results.forEach(data => {
-      if (data && data.articles) {
-        data.articles.forEach(a => {
-          // 檢查文章的網址 (url) 是否包含在我們的 10 大白名單中
-          const isFromTop10 = whiteList.some(domain => a.url.toLowerCase().includes(domain));
-          
-          if (isFromTop10) {
-            const pubDate = new Date(a.publishedAt);
-            filteredArticles.push({
-              title: a.title,
-              url: a.url,
-              image: a.image || null,
-              source: a.source?.name || 'News',
-              time: (pubDate.getMonth() + 1) + '/' + pubDate.getDate() + ' ' + 
-                    pubDate.getHours().toString().padStart(2, '0') + ':' + 
-                    pubDate.getMinutes().toString().padStart(2, '0'),
-              timestamp: pubDate.getTime()
-            });
-          }
-        });
-      }
-    });
-
-    // 依時間排序
-    filteredArticles.sort((a, b) => b.timestamp - a.timestamp);
-
-    // 如果過濾後太少，則補一些熱門新聞進去，避免網頁空白
-    if (filteredArticles.length === 0) {
-        return res.status(200).json({ articles: results[0]?.articles?.slice(0, 10) || [] });
+    if (!response.ok) {
+        // 如果是因為額度滿了，回傳友善提示
+        if (response.status === 403) return res.status(200).json({ articles: [], message: "今日 API 額度已用盡，請明早 8 點再試。" });
+        return res.status(response.status).json({ error: "API Error" });
     }
 
-    return res.status(200).json({ articles: filteredArticles });
+    const articles = (data.articles || []).map(a => {
+      const pubDate = new Date(a.publishedAt);
+      return {
+        title: a.title,
+        url: a.url,
+        image: a.image,
+        source: a.source.name,
+        time: (pubDate.getMonth() + 1) + '/' + pubDate.getDate() + ' ' + 
+              pubDate.getHours().toString().padStart(2, '0') + ':' + 
+              pubDate.getMinutes().toString().padStart(2, '0')
+      };
+    });
+
+    return res.status(200).json({ articles });
 
   } catch (err) {
     return res.status(500).json({ error: err.message });
