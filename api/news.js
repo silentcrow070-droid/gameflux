@@ -1,13 +1,15 @@
 // api/news.js — 中英混合主流媒體版
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  // Vercel 快取 10 分鐘，節省 API 額度
+  // Vercel 邊緣快取 10 分鐘，避免頻繁消耗 API 額度
   res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=300');
 
   const apiKey = process.env.GNEWS_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'GNEWS_API_KEY not set' });
 
-  // 定義搜尋配置：中英文各抓 10 則
+  // 定義搜尋配置：
+  // 中文：鎖定台灣地區，過濾巴哈、IGN、4Gamers
+  // 英文：鎖定美國地區，過濾 IGN、GameSpot、PC Gamer
   const configs = [
     { lang: 'zh', country: 'tw', q: '(新作 OR 評測 OR 熱門) AND (IGN OR 巴哈姆特 OR 4Gamers OR 遊戲基地)' },
     { lang: 'en', country: 'us', q: '(New Release OR Review OR Trending) AND (IGN OR GameSpot OR PC Gamer OR Eurogamer)' }
@@ -38,7 +40,7 @@ export default async function handler(req, res) {
       }
     });
 
-    // 依時間排序，最新的排前面
+    // 依發布時間排序（最新的在前）
     combined.sort((a, b) => b.timestamp - a.timestamp);
 
     return res.status(200).json({ articles: combined });
