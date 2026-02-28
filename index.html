@@ -3,58 +3,50 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>遊戲人間 | GameFlux Portal</title>
+<title>遊戲人間 | 極速遊戲情報中心</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
-  :root { --tiffany: #81D8D0; --bg: #f0f2f5; --card: #ffffff; }
+  :root { --tiffany: #81D8D0; --bg: #f5f7f9; --card: #ffffff; --text: #1a1a1a; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); font-family: 'Noto Sans TC', sans-serif; color: #1c1e21; }
+  body { background: var(--bg); font-family: 'Noto Sans TC', sans-serif; color: var(--text); overflow-x: hidden; }
 
-  /* 導覽列：左商標、右更新 */
-  nav { background: #fff; padding: 12px 0; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  /* 導覽列：左商標、右計時 */
+  nav { background: #fff; padding: 12px 0; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
   .nav-container { width: 95%; max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
-  .brand { font-size: 1.4rem; font-weight: 900; text-decoration: none; color: #111; letter-spacing: -1px; }
+  .brand { font-size: 1.5rem; font-weight: 900; text-decoration: none; color: #111; letter-spacing: -1px; }
   .brand span { color: var(--tiffany); }
-  .update-tag { font-size: 0.75rem; color: #888; background: #f0f0f0; padding: 4px 10px; border-radius: 4px; font-weight: 700; }
+  .sync-status { font-size: 0.8rem; color: #888; background: #f0f0f0; padding: 5px 12px; border-radius: 6px; font-weight: 700; border: 1px solid #e0e0e0; }
 
-  /* MSN 風格網格系統 */
-  .grid-container { 
-    width: 95%; max-width: 1400px; margin: 25px auto; 
-    display: grid; 
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
-    gap: 20px; 
-  }
+  /* 網格系統 */
+  .grid-container { width: 95%; max-width: 1400px; margin: 30px auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
 
-  /* 第一則新聞放大 (看板效果) */
+  /* MSN 頭版效果：第一則放大 */
   .news-card.featured { grid-column: span 2; grid-row: span 2; }
+  .news-card.featured .title { font-size: 1.8rem; line-height: 1.2; margin-top: 10px; }
 
-  /* 卡片設計 */
-  .news-card { 
-    background: var(--card); border-radius: 12px; overflow: hidden; 
-    text-decoration: none; color: inherit; display: flex; flex-direction: column; 
-    transition: transform 0.2s, box-shadow 0.2s; 
-    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-  }
-  .news-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.1); }
+  /* 卡片基本設計 */
+  .news-card { background: var(--card); border-radius: 16px; overflow: hidden; text-decoration: none; color: inherit; display: flex; flex-direction: column; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+  .news-card:hover { transform: translateY(-6px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
 
-  .image-wrap { width: 100%; aspect-ratio: 16/9; background: #e4e6eb; position: relative; overflow: hidden; }
-  .image-wrap img { width: 100%; height: 100%; object-fit: cover; }
+  /* 圖片包裝與破防屬性 */
+  .image-box { width: 100%; aspect-ratio: 16/9; background: #eef1f4; position: relative; overflow: hidden; }
+  .image-box img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
+  .news-card:hover .image-box img { transform: scale(1.05); }
   
-  .fallback-logo { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; color: #fff; font-weight: 900; font-size: 1.5rem; text-transform: uppercase; }
+  /* 保底機制 */
+  .fallback { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; color: #fff; font-weight: 900; font-size: 1.5rem; text-transform: uppercase; }
 
-  .content-wrap { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; }
-  .source-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-  .source-dot { width: 8px; height: 8px; border-radius: 50%; }
-  .source-name { font-size: 0.75rem; font-weight: 900; color: #65676b; }
+  .info-box { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; }
+  .source-info { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .source-label { font-size: 0.8rem; font-weight: 900; color: #777; letter-spacing: 0.5px; }
 
-  .title { font-size: 1.1rem; font-weight: 700; line-height: 1.4; color: #050505; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-  .news-card.featured .title { font-size: 1.6rem; -webkit-line-clamp: 2; }
+  .title { font-size: 1.15rem; font-weight: 700; line-height: 1.45; color: #111; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
-  .date { margin-top: auto; padding-top: 10px; font-size: 0.75rem; color: #8a8d91; }
-
-  @media (max-width: 768px) {
+  @media (max-width: 850px) {
     .grid-container { grid-template-columns: 1fr; }
     .news-card.featured { grid-column: auto; grid-row: auto; }
+    .news-card.featured .title { font-size: 1.2rem; }
   }
 </style>
 </head>
@@ -63,59 +55,62 @@
 <nav>
   <div class="nav-container">
     <a href="/" class="brand">遊戲<span>人間</span></a>
-    <div id="timer" class="update-tag">NEXT SYNC: 10:00</div>
+    <div id="countdown" class="sync-status">NEXT SYNC: 10:00</div>
   </div>
 </nav>
 
 <main class="grid-container" id="newsGrid">
-  </main>
+  <div style="grid-column: 1/-1; text-align: center; padding: 100px; color: #aaa; font-weight: 700;">連線至全球遊戲情報網...</div>
+</main>
 
 <script>
-const colors = { 'PlayStation': '#003087', 'Xbox Wire': '#107c10', 'Nintendo': '#e60012', 'IGN': '#bf1313', '巴哈姆特': '#00adef' };
+const branding = { 
+  'PlayStation': '#003087', 'Xbox Wire': '#107c10', 'Nintendo': '#e60012', 
+  'IGN': '#bf1313', '巴哈姆特': '#00adef' 
+};
 
-async function fetchFeed() {
+async function syncNews() {
   try {
     const res = await fetch('/api/news');
     const data = await res.json();
     const grid = document.getElementById('newsGrid');
 
-    grid.innerHTML = data.articles.map((a, idx) => {
-      const isFeatured = idx === 0;
-      const date = new Date(a.ts).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' });
-      
-      return `
-        <a href="${a.url}" target="_blank" class="news-card ${isFeatured ? 'featured' : ''}">
-          <div class="image-wrap">
-            ${a.image ? 
-              `<img src="${a.image}" referrerpolicy="no-referrer" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''
-            }
-            <div class="fallback-logo" style="background:${colors[a.source] || '#81D8D0'}; display:${a.image ? 'none' : 'flex'}">
-              ${a.source}
-            </div>
+    grid.innerHTML = data.articles.map((a, i) => `
+      <a href="${a.url}" target="_blank" class="news-card ${i === 0 ? 'featured' : ''}">
+        <div class="image-box">
+          ${a.image ? 
+            `<img src="${a.image}" 
+                  referrerpolicy="no-referrer" 
+                  loading="lazy"
+                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''
+          }
+          <div class="fallback" style="background:${branding[a.source] || '#81D8D0'}; display:${a.image ? 'none' : 'flex'}">
+            ${a.source}
           </div>
-          <div class="content-wrap">
-            <div class="source-row">
-              <div class="source-dot" style="background:${colors[a.source] || '#81D8D0'}"></div>
-              <span class="source-name">${a.source}</span>
-            </div>
-            <h2 class="title">${a.title}</h2>
-            <div class="date">${date}</div>
+        </div>
+        <div class="info-box">
+          <div class="source-info">
+            <div class="dot" style="background:${branding[a.source] || '#81D8D0'}"></div>
+            <span class="source-label">${a.source}</span>
           </div>
-        </a>
-      `;
-    }).join('');
-  } catch (e) { console.error("Sync Error", e); }
+          <h2 class="title">${a.title}</h2>
+        </div>
+      </a>
+    `).join('');
+  } catch (err) { console.error("Sync Failed", err); }
 }
 
-// 倒數計時與自動刷新
-let nextSync = Date.now() + 600000;
+// 倒數與同步器
+let nextRefresh = Date.now() + 600000;
 setInterval(() => {
-  const diff = Math.max(0, Math.floor((nextSync - Date.now()) / 1000));
-  document.getElementById('timer').innerText = `NEXT SYNC: ${Math.floor(diff/60)}:${(diff%60).toString().padStart(2,'0')}`;
-  if(diff <= 0) { nextSync = Date.now() + 600000; fetchFeed(); }
+  const diff = Math.max(0, Math.floor((nextRefresh - Date.now()) / 1000));
+  const m = Math.floor(diff / 60);
+  const s = diff % 60;
+  document.getElementById('countdown').innerText = `NEXT SYNC: ${m}:${s.toString().padStart(2,'0')}`;
+  if(diff <= 0) { nextRefresh = Date.now() + 600000; syncNews(); }
 }, 1000);
 
-fetchFeed();
+syncNews();
 </script>
 </body>
 </html>
