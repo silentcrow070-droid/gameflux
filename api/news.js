@@ -4,11 +4,13 @@ export default async function handler(req, res) {
 
   const { region, category } = req.query;
 
+  // 修正後的 RSS 來源清單
   const sources = {
     tw: [
       { name: "4Gamers", url: "https://www.4gamers.com.tw/rss/latest" },
       { name: "UDN遊戲", url: "https://game.udn.com/rss/news/2003/2004" },
-      { name: "ETtoday遊戲", url: "https://feeds.feedburner.com/ettoday/game" }
+      // 更換 ETtoday 原生連結，避免 403 錯誤
+      { name: "ETtoday遊戲", url: "https://feeds.feedburner.com/ettoday/game" } 
     ],
     global: [
       { name: "遊民星空", url: "https://www.gamersky.com/rssfeed/01.xml" },
@@ -26,7 +28,10 @@ export default async function handler(req, res) {
 
   try {
     const results = await Promise.allSettled(selected.map(s => 
-      fetch(s.url, { headers: { 'User-Agent': 'Mozilla/5.0' } }).then(r => r.text())
+      fetch(s.url, { 
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+        signal: AbortSignal.timeout(5000) // 避免單一網站掛掉拖慢整體
+      }).then(r => r.text())
     ));
 
     let allArticles = [];
@@ -34,7 +39,7 @@ export default async function handler(req, res) {
     const threeDaysAgo = now - (3 * 24 * 60 * 60 * 1000);
 
     results.forEach((result, i) => {
-      if (result.status === 'fulfilled') {
+      if (result.status === 'fulfilled' && result.value.includes('<item>')) {
         const sourceName = selected[i].name;
         const xml = result.value;
         const items = xml.split('<item>').slice(1);
@@ -50,19 +55,26 @@ export default async function handler(req, res) {
           if (ts < threeDaysAgo) return;
 
           let img = "";
-          const imgTags = (desc + item).matchAll(/src="([^">]+?\.(?:jpg|jpeg|png|webp)[^">]*?)"/gi);
-          for (let match of imgTags) {
-            if (!/logo|icon|avatar|pixel|fb|line|ads/i.test(match[1])) {
-              img = match[1]; break;
+          // 強化圖片抓取：優先找 enclosure 或 media:content
+          const media = item.match(/<(?:media:content|enclosure)[^>]+url="([^">]+)"/i);
+          if (media) {
+            img = media[1];
+          } else {
+            const imgTags = (desc + item).matchAll(/src="([^">]+?\.(?:jpg|jpeg|png|webp)[^">]*?)"/gi);
+            for (let match of imgTags) {
+              if (!/logo|icon|avatar|pixel|fb|line|ads/i.test(match[1])) {
+                img = match[1]; break;
+              }
             }
           }
+          
           if (img && img.startsWith('//')) img = 'https:' + img;
           if (sourceName === "遊民星空") { title = s2t(title); desc = s2t(desc); }
 
           const hotScore = title.length + (['限時', '免費', '首發', '大作'].some(k => title.includes(k)) ? 50 : 0);
 
           sourceArticles.push({
-            title: title.trim(), url: link, image: img, source: sourceName,
+            title: title.trim(), url: link.trim(), image: img, source: sourceName,
             ts, hotScore, time: pubDate ? pubDate.slice(5, 16) : ""
           });
         });
