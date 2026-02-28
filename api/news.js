@@ -2,7 +2,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
 
-  const { region, category } = req.query;
+  const { region } = req.query;
 
   const sources = {
     tw: [
@@ -11,20 +11,20 @@ export default async function handler(req, res) {
       { name: "UDN遊戲", url: "https://game.udn.com/rss/news/2003/2004", type: "rss" }
     ],
     global: [
-      { name: "遊民星空", url: "https://www.gamersky.com/rssfeed/01.xml", type: "rss" },
-      { name: "IGN", url: "https://feeds.feedburner.com/ign/all", type: "rss" }
+      { name: "IGN", url: "https://feeds.feedburner.com/ign/all", type: "rss" },
+      { name: "GameSpot", url: "https://www.gamespot.com/feeds/game-news/", type: "rss" },
+      { name: "Kotaku", url: "https://kotaku.com/rss", type: "rss" }
     ]
   };
 
-  // 1. 更嚴格的關鍵字清單
-  const JUNK_WORDS = [
-    '筆電', '顯卡', '處理器', '開箱', '周邊', '滑鼠', '鍵盤', '螢幕', '電競椅', 
-    '股價', '營收', '併購', '法說會', '聯名', '快閃店', '一番賞', '公仔', '模型', 
-    'CPU', 'GPU', 'RTX', 'Laptop', 'Deals', 'Coupons', 'Monitor', 'PC Prebuilt'
+  // 強化黑名單：徹底過濾 3C 硬體與促銷
+  const JUNK_KEYWORDS = [
+    '筆電', '顯卡', '處理器', 'CPU', 'GPU', 'RTX', 'Laptop', '螢幕', 'Monitor',
+    '滑鼠', '鍵盤', '電競椅', '周邊', '開箱', 'Deals', 'Coupons', 'Discount',
+    'Air Duster', 'Soundbar', 'Dell', 'Alienware', 'Sonos', 'Sale', 'Tech'
   ];
 
-  // 2. 針對連結的路徑過濾 (專治 IGN 雜訊)
-  const JUNK_PATHS = ['/tech/', '/deals/', '/articles/2026/02/27/the-best-dell'];
+  const JUNK_PATHS = ['/tech/', '/deals/', '/shopping/', '/gift-guide/'];
 
   const s2t = (s) => {
     const d = { '游':'遊','戏':'戲','电':'電','竞':'競','发':'發','机':'機','体':'體','后':'後','里':'裡','开':'開','关':'關' };
@@ -45,63 +45,47 @@ export default async function handler(req, res) {
       if (result.status === 'fulfilled') {
         const source = selected[i];
         const html = result.value;
+        let sourceCount = 0;
 
-        if (source.name === "遊戲基地") {
+        if (source.type === "html") {
+          // 遊戲基地爬蟲邏輯
           const items = html.split('<li class="NewsList_item').slice(1, 15);
           items.forEach(item => {
+            if (sourceCount >= 8) return;
             let title = (item.match(/<h3[^>]*>(.*?)<\/h3>/)?.[1] || "").replace(/<[^>]*>/g, '').trim();
             let link = item.match(/href="([^"]+)"/)?.[1] || "";
-            
-            // 過濾邏輯
-            if (JUNK_WORDS.some(word => title.includes(word))) return;
-            if (JUNK_PATHS.some(path => link.includes(path))) return;
-
-            let img = item.match(/src="([^"]+)"/)?.[1];
-            if (title && link) {
-              allArticles.push({
-                title,
-                url: link.startsWith('http') ? link : `https://news.gamebase.com.tw${link}`,
-                image: img || "",
-                source: "遊戲基地",
-                ts: now - (allArticles.length * 1000),
-                time: "今日精選"
-              });
-            }
+            if (JUNK_KEYWORDS.some(k => title.includes(k))) return;
+            allArticles.push({
+              title, url: link.startsWith('http') ? link : `https://news.gamebase.com.tw${link}`,
+              image: item.match(/src="([^"]+)"/)?.[1] || "",
+              source: source.name, ts: now - (allArticles.length * 1000), time: "今日精選"
+            });
+            sourceCount++;
           });
         } else {
+          // RSS 邏輯 (IGN, 4Gamers, GameSpot, Kotaku)
           const items = html.split('<item>').slice(1);
           items.forEach(item => {
+            if (sourceCount >= 8) return;
             let title = (item.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/)?.[1] || "").trim();
             let link = (item.match(/<link>(.*?)<\/link>/)?.[1] || "").trim();
             
-            if (source.name === "遊民星空") title = s2t(title);
-            
-            // --- 強化過濾機制 ---
-            if (JUNK_WORDS.some(word => title.toUpperCase().includes(word.toUpperCase()))) return;
-            if (JUNK_PATHS.some(path => link.includes(path))) return;
-            // ------------------
+            // 雜訊過濾
+            if (JUNK_KEYWORDS.some(k => title.toUpperCase().includes(k.toUpperCase()))) return;
+            if (JUNK_PATHS.some(p => link.toLowerCase().includes(p))) return;
 
             let pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1];
             let desc = item.match(/<description>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/description>/s)?.[1] || "";
-            let img = "";
-            const media = item.match(/<(?:media:content|enclosure)[^>]+url="([^">]+)"/i);
-            if (media) img = media[1];
-            else {
-              const imgTags = (desc + item).match(/src="([^">]+?\.(?:jpg|jpeg|png|webp)[^">]*?)"/i);
-              if (imgTags) img = imgTags[1];
-            }
+            let img = (item.match(/<(?:media:content|enclosure)[^>]+url="([^">]+)"/i) || (desc + item).match(/src="([^">]+?\.(?:jpg|jpeg|png|webp)[^">]*?)"/i))?.[1] || "";
 
-            allArticles.push({
-              title, url: link, image: img, source: source.name,
-              ts: new Date(pubDate).getTime() || now,
-              time: pubDate ? pubDate.slice(5, 16) : ""
-            });
+            allArticles.push({ title, url: link, image: img, source: source.name, ts: new Date(pubDate).getTime() || now, time: pubDate ? pubDate.slice(5, 16) : "" });
+            sourceCount++;
           });
         }
       }
     });
 
     allArticles.sort((a, b) => b.ts - a.ts);
-    res.status(200).json({ articles: allArticles.slice(0, 45) });
+    res.status(200).json({ articles: allArticles });
   } catch (e) { res.status(500).json({ error: e.message }); }
 }
