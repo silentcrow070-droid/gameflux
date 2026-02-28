@@ -3,71 +3,117 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>遊戲人間</title>
+<title>遊戲人間 | Global Game News</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
 <style>
-  :root { --tiffany: #81D8D0; --bg: #fdfdfd; }
-  body { background: var(--bg); font-family: 'Noto Sans TC', sans-serif; margin: 0; }
-  .container { width: 95%; max-width: 900px; margin: 0 auto; padding-top: 40px; }
+  :root { --tiffany: #81D8D0; --bg: #ffffff; --text: #111; }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Noto Sans TC', sans-serif; margin: 0; }
   
-  /* 精簡標題區 */
-  .logo-header { text-align: center; margin-bottom: 50px; }
-  .logo-header h1 { font-size: 2.2rem; font-weight: 900; letter-spacing: -1px; margin: 0; color: #333; }
-  .logo-header h1 span { color: var(--tiffany); }
+  /* 導覽列：極簡白底，區隔最左與最右 */
+  nav { 
+    position: sticky; top: 0; z-index: 1000; background: #fff; 
+    border-bottom: 1px solid #eaeaea; padding: 15px 0; 
+  }
+  .nav-container { 
+    width: 95%; max-width: 1200px; margin: 0 auto; 
+    display: flex; justify-content: space-between; align-items: center; 
+  }
+  .brand { font-size: 1.5rem; font-weight: 900; text-decoration: none; color: #000; letter-spacing: -1px; }
+  .brand span { color: var(--tiffany); }
+  .timer-box { font-size: 0.8rem; color: #999; font-weight: 500; background: #f8f8f8; padding: 5px 12px; border-radius: 4px; border: 1px solid #eee; }
 
-  /* 新聞列表單元 */
-  .news-card { display: flex; align-items: center; gap: 25px; padding: 25px 0; border-bottom: 1px solid #eee; text-decoration: none; color: #1a1a1a; transition: 0.2s; }
-  .news-card:hover { opacity: 0.8; }
-
-  /* 媒體容器：移除中間標籤後，Logo 承載所有品牌訊息 */
-  .media-box { width: 220px; aspect-ratio: 16/10; border-radius: 14px; overflow: hidden; background: #eee; position: relative; flex-shrink: 0; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-  .media-box img { width: 100%; height: 100%; object-fit: cover; }
+  /* 主佈局：參考 The Verge 風格 */
+  .main-content { width: 95%; max-width: 1000px; margin: 40px auto; }
+  .news-item { 
+    display: flex; gap: 30px; padding: 30px 0; 
+    border-bottom: 1px solid #f0f0f0; text-decoration: none; color: inherit; 
+    transition: 0.2s ease-in-out;
+  }
+  .news-item:hover { opacity: 0.7; transform: translateX(5px); }
   
-  /* 保底 Logo */
-  .fallback { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; color: #fff; font-weight: 900; font-size: 1.2rem; }
-
-  .news-info { flex: 1; }
-  .news-title { font-size: 1.35rem; font-weight: 700; line-height: 1.4; margin-top: 5px; }
+  /* 媒體容器 */
+  .media-wrap { 
+    width: 240px; aspect-ratio: 16/10; border-radius: 8px; overflow: hidden; 
+    background: #f4f4f4; position: relative; flex-shrink: 0; 
+  }
+  .media-wrap img { width: 100%; height: 100%; object-fit: cover; }
   
-  /* 更新時間 */
-  .news-date { font-size: 0.85rem; color: #bbb; margin-top: 8px; font-weight: 500; }
+  /* Logo 保底區 (移除中間標籤後，Logo 直接在方框內顯示) */
+  .source-fallback { 
+    position: absolute; inset: 0; display: none; align-items: center; 
+    justify-content: center; color: #fff; font-weight: 900; font-size: 1.1rem; 
+  }
 
+  /* 文字內容區 */
+  .info-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .news-title { font-size: 1.4rem; font-weight: 700; line-height: 1.35; color: #111; margin: 0 0 10px 0; }
+  .meta-data { font-size: 0.85rem; color: #bbb; display: flex; align-items: center; gap: 10px; }
+  
   @media (max-width: 768px) {
-    .news-card { flex-direction: column; align-items: flex-start; gap: 15px; }
-    .media-box { width: 100%; }
+    .news-item { flex-direction: column; gap: 15px; }
+    .media-wrap { width: 100%; }
+    .news-title { font-size: 1.1rem; }
   }
 </style>
 </head>
 <body>
 
-<div class="container">
-  <div class="logo-header"><h1>遊戲<span>人間</span></h1></div>
-  <div id="newsFeed"></div>
+<nav>
+  <div class="nav-container">
+    <a href="/" class="brand">遊戲<span>人間</span></a>
+    <div id="countdown" class="timer-box">NEXT UPDATE: 10:00</div>
+  </div>
+</nav>
+
+<div class="main-content">
+  <div id="feed"></div>
 </div>
 
 <script>
-const colors = { 'PlayStation': '#003087', 'Xbox Wire': '#107c10', 'Nintendo': '#e60012', 'IGN': '#bf1313', '巴哈姆特': '#00adef' };
+const themes = { 'PlayStation': '#003087', 'Xbox Wire': '#107c10', 'Nintendo': '#e60012', 'IGN': '#bf1313', '巴哈姆特': '#00adef' };
 
-async function load() {
-  const res = await fetch('/api/news');
-  const data = await res.json();
-  document.getElementById('newsFeed').innerHTML = data.articles.map(a => {
-    const date = new Date(a.ts).toLocaleDateString('zh-TW', { year: 'numeric', month: 'short', day: 'numeric' });
-    return `
-      <a href="${a.url}" target="_blank" class="news-card">
-        <div class="media-box">
-          ${a.image ? `<img src="${a.image}" referrerpolicy="no-referrer" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
-          <div class="fallback" style="background:${colors[a.source] || '#81D8D0'}; display:${a.image ? 'none' : 'flex'}">${a.source}</div>
-        </div>
-        <div class="news-info">
-          <div class="news-title">${a.title}</div>
-          <div class="news-date">${date}</div>
-        </div>
-      </a>
-    `;
-  }).join('');
+async function fetchNews() {
+  const feed = document.getElementById('feed');
+  try {
+    const res = await fetch('/api/news');
+    const data = await res.json();
+    
+    feed.innerHTML = data.articles.map(a => {
+      const timeStr = new Date(a.ts).toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', year: 'numeric' });
+      return `
+        <a href="${a.url}" target="_blank" class="news-item">
+          <div class="media-wrap">
+            ${a.image ? `<img src="${a.image}" referrerpolicy="no-referrer" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
+            <div class="source-fallback" style="background:${themes[a.source] || '#81D8D0'}; display:${a.image ? 'none' : 'flex'}">${a.source}</div>
+          </div>
+          <div class="info-wrap">
+            <h2 class="news-title">${a.title}</h2>
+            <div class="meta-data">
+              <span style="color:var(--tiffany); font-weight:900;">${a.source}</span>
+              <span>•</span>
+              <span>${timeStr}</span>
+            </div>
+          </div>
+        </a>
+      `;
+    }).join('');
+  } catch (e) {
+    feed.innerHTML = "數據加載中...";
+  }
 }
-load();
+
+// 計時器邏輯
+let nextUpdate = Date.now() + 600000;
+setInterval(() => {
+  const diff = Math.max(0, Math.floor((nextUpdate - Date.now()) / 1000));
+  const m = Math.floor(diff / 60);
+  const s = diff % 60;
+  document.getElementById('countdown').innerText = `NEXT UPDATE: ${m}:${s.toString().padStart(2,'0')}`;
+  if (diff <= 0) { nextUpdate = Date.now() + 600000; fetchNews(); }
+}, 1000);
+
+fetchNews();
 </script>
 </body>
 </html>
