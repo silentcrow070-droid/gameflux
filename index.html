@@ -1,321 +1,78 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>遊戲人間 | GAMEFLUX - 全球情報聚合</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
-<style>
-  /* 配色設定：清晰、耐看、專業 */
-  :root { 
-    --tiffany: #81D8D0; 
-    --bg: #f8f9fa; 
-    --card-bg: #ffffff;
-    --text-main: #1a1a1a;
-    --text-sub: #555555;
-    --border: #ececec;
-  }
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=300');
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { 
-    background: var(--bg); 
-    color: var(--text-main); 
-    font-family: 'Noto Sans TC', sans-serif; 
-    line-height: 1.5;
-  }
+  const { region, category, sort } = req.query;
 
-  /* 介面優化：減少留白，使用 95% 寬度 */
-  .container { 
-    width: 95%; 
-    max-width: 1750px; 
-    margin: 0 auto; 
-  }
+  const sources = {
+    tw: [
+      { name: "4Gamers", url: "https://www.4gamers.com.tw/rss/latest" },
+      { name: "UDN遊戲", url: "https://game.udn.com/rss/news/2003/2004" }
+    ],
+    global: [
+      { name: "遊民星空", url: "https://www.gamersky.com/rssfeed/01.xml" },
+      { name: "IGN", url: "https://feeds.feedburner.com/ign/all" }
+    ]
+  };
 
-  /* 導覽列 */
-  nav { 
-    background: var(--tiffany); 
-    padding: 14px 0; 
-    position: sticky; 
-    top: 0; 
-    z-index: 1000; 
-    box-shadow: 0 2px 10px rgba(0,0,0,0.08); 
-  }
-  nav .container { display: flex; gap: 35px; }
-  nav a { 
-    color: white; 
-    text-decoration: none; 
-    font-weight: 700; 
-    cursor: pointer; 
-    font-size: 0.95rem; 
-    transition: opacity 0.2s;
-  }
-  nav a:hover { opacity: 0.8; }
+  const s2t = (s) => {
+    const d = { '游':'遊','戏':'戲','电':'電','竞':'競','发':'發','机':'機','体':'體','后':'後','里':'裡','开':'開','关':'關' };
+    return s.replace(/[游戏电竞发机体后里开关]/g, m => d[m] || m);
+  };
 
-  header { padding: 45px 0 25px; }
-  .logo { font-size: 2.8rem; font-weight: 900; letter-spacing: -1.5px; }
-  .logo span { color: var(--tiffany); }
+  let selected = region === 'tw' ? sources.tw : (region === 'global' ? sources.global : [...sources.tw, ...sources.global]);
 
-  /* 頂部焦點新聞 */
-  .hero-grid { 
-    display: grid; 
-    grid-template-columns: repeat(3, 1fr); 
-    gap: 20px; 
-    margin-bottom: 40px; 
-  }
-  .hero-item { 
-    position: relative; 
-    aspect-ratio: 16/9; 
-    background: #e0e0e0; 
-    border-radius: 14px; 
-    overflow: hidden; 
-    text-decoration: none; 
-    display: block;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-  }
-  .hero-item img { 
-    width: 100%; 
-    height: 100%; 
-    object-fit: cover; 
-    transition: transform 0.5s;
-  }
-  .hero-item:hover img { transform: scale(1.05); }
-  .hero-overlay { 
-    position: absolute; 
-    bottom: 0; 
-    left: 0; 
-    right: 0; 
-    background: linear-gradient(transparent, rgba(0,0,0,0.85)); 
-    padding: 25px; 
-    color: white; 
-  }
-  .hero-title { font-size: 1.2rem; font-weight: 700; line-height: 1.4; }
-
-  /* 主要內容區佈局 */
-  .content-wrapper { 
-    display: grid; 
-    grid-template-columns: 240px 1fr; 
-    gap: 40px; 
-    align-items: start;
-  }
-  
-  /* 左側側邊欄 */
-  .side-nav a { 
-    display: block; 
-    padding: 16px 20px; 
-    color: var(--text-sub); 
-    text-decoration: none; 
-    font-weight: 700; 
-    border-radius: 12px; 
-    margin-bottom: 8px; 
-    cursor: pointer; 
-    transition: 0.2s;
-  }
-  .side-nav a:hover, .side-nav a.active { 
-    background: #fff; 
-    color: var(--tiffany); 
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
-  }
-
-  /* 新聞列表區 */
-  .main-feed { 
-    background: var(--card-bg); 
-    border-radius: 20px; 
-    padding: 35px; 
-    box-shadow: 0 2px 25px rgba(0,0,0,0.03); 
-  }
-  .feed-header { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    border-bottom: 2px solid #f5f5f5; 
-    padding-bottom: 20px; 
-    margin-bottom: 30px; 
-  }
-  
-  /* 篩選按鈕 */
-  .filter-btn { 
-    padding: 8px 22px; 
-    border-radius: 25px; 
-    border: 1px solid #ddd; 
-    background: #fff; 
-    cursor: pointer; 
-    font-weight: 700; 
-    font-size: 0.85rem; 
-    color: var(--text-sub);
-    transition: 0.2s;
-  }
-  .filter-btn.active { 
-    background: var(--tiffany); 
-    color: white; 
-    border-color: var(--tiffany); 
-  }
-
-  /* 新聞卡片單元 */
-  .news-card { 
-    display: grid; 
-    grid-template-columns: 260px 1fr; 
-    gap: 30px; 
-    padding: 25px 0; 
-    border-bottom: 1px solid #f9f9f9; 
-    text-decoration: none; 
-    color: inherit; 
-    align-items: center; 
-  }
-  .news-thumb { 
-    aspect-ratio: 16/10; 
-    border-radius: 12px; 
-    overflow: hidden; 
-    background: #f0f0f0; 
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .news-thumb img { 
-    width: 100%; 
-    height: 100%; 
-    object-fit: cover; 
-    display: block;
-  }
-  /* 圖片載入失敗時的顯示 */
-  .news-thumb.no-img::after {
-    content: 'IMAGE';
-    color: #ccc;
-    font-weight: 900;
-    font-size: 0.8rem;
-    letter-spacing: 2px;
-  }
-
-  .news-source { 
-    color: var(--tiffany); 
-    font-weight: 800; 
-    font-size: 0.8rem; 
-    text-transform: uppercase; 
-    margin-bottom: 8px; 
-    display: inline-block;
-  }
-  .news-title { 
-    font-size: 1.3rem; 
-    font-weight: 700; 
-    color: var(--text-main); 
-    line-height: 1.45;
-    margin-bottom: 10px;
-  }
-  .news-time {
-    font-size: 0.85rem;
-    color: #999;
-  }
-
-  /* 手機版適應 */
-  @media (max-width: 1000px) { 
-    .hero-grid { grid-template-columns: 1fr; } 
-    .content-wrapper { grid-template-columns: 1fr; } 
-    .side-nav { display: none; } 
-    .news-card { grid-template-columns: 1fr; }
-  }
-</style>
-</head>
-<body>
-
-<nav>
-  <div class="container">
-    <a onclick="updateState('category', 'all')">首頁總覽</a>
-    <a onclick="updateState('category', 'tv')">家用主機</a>
-    <a onclick="updateState('category', 'pc')">電腦遊戲</a>
-    <a onclick="updateState('category', 'mobile')">行動遊戲</a>
-    <a onclick="updateState('category', 'esports')">電競賽事</a>
-  </div>
-</nav>
-
-<div class="container">
-  <header>
-    <div class="logo">遊戲<span>人間</span></div>
-  </header>
-
-  <section id="heroGrid" class="hero-grid"></section>
-
-  <div class="content-wrapper">
-    <aside class="side-nav">
-      <a id="s-latest" class="active" onclick="updateState('sort', 'latest')">🏠 最新情報</a>
-      <a id="s-hot" onclick="updateState('sort', 'hot')">🔥 熱門討論</a>
-      <a id="s-gossip" onclick="updateState('sort', 'gossip')">🗣️ 傳聞爆料</a>
-    </aside>
-
-    <main class="main-feed">
-      <div class="feed-header">
-        <h2 style="font-size:1.5rem; font-weight:900;">情報聚合</h2>
-        <div class="filter-group">
-          <button class="filter-btn active" id="b-all" onclick="updateState('region', 'all')">全部</button>
-          <button class="filter-btn" id="b-tw" onclick="updateState('region', 'tw')">國內</button>
-          <button class="filter-btn" id="b-global" onclick="updateState('region', 'global')">國外</button>
-        </div>
-      </div>
-      <div id="newsGrid">新聞內容加載中...</div>
-    </main>
-  </div>
-</div>
-
-<script>
-let currentState = { region: 'all', category: 'all', sort: 'latest' };
-
-// 更新狀態並重新抓取
-function updateState(key, value) {
-  currentState[key] = value;
-  
-  // 更新 UI 按鈕狀態
-  if (key === 'region') {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.id === `b-${value}`));
-  }
-  if (key === 'sort') {
-    document.querySelectorAll('.side-nav a').forEach(a => a.classList.toggle('active', a.id === `s-${value}`));
-  }
-  
-  fetchData();
-}
-
-async function fetchData() {
-  const grid = document.getElementById('newsGrid');
-  const hero = document.getElementById('heroGrid');
-  const query = new URLSearchParams(currentState).toString();
-  
   try {
-    const response = await fetch(`/api/news?${query}`);
-    const data = await response.json();
-    
-    if (data.articles && data.articles.length > 0) {
-      // 渲染頂部大圖 (前三則)
-      hero.innerHTML = data.articles.slice(0, 3).map(article => `
-        <a href="${article.url}" target="_blank" class="hero-item">
-          ${article.image ? `<img src="${article.image}" onerror="this.style.display='none'; this.parentElement.style.background='var(--tiffany)';" loading="lazy">` : `<div style="width:100%;height:100%;background:var(--tiffany);"></div>`}
-          <div class="hero-overlay">
-            <div class="hero-title">${article.title}</div>
-          </div>
-        </a>
-      `).join('');
+    const results = await Promise.allSettled(selected.map(s => 
+      fetch(s.url, { headers: { 'User-Agent': 'Mozilla/5.0' } }).then(r => r.text())
+    ));
 
-      // 渲染新聞列表 (剩下的)
-      grid.innerHTML = data.articles.slice(3).map(article => `
-        <a href="${article.url}" target="_blank" class="news-card">
-          <div class="news-thumb ${!article.image ? 'no-img' : ''}">
-            ${article.image ? `<img src="${article.image}" onerror="this.parentElement.classList.add('no-img'); this.style.display='none';" loading="lazy">` : ''}
-          </div>
-          <div>
-            <div class="news-source">${article.source}</div>
-            <div class="news-title">${article.title}</div>
-            <div class="news-time">${article.time}</div>
-          </div>
-        </a>
-      `).join('');
-    } else {
-      grid.innerHTML = "<div style='padding:50px; text-align:center; color:#888;'>此分類目前沒有新聞，請試試其他分類。</div>";
+    let articles = [];
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled') {
+        const xml = result.value;
+        const items = xml.split('<item>').slice(1);
+        items.forEach(item => {
+          let title = item.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/)?.[1] || "";
+          let link = item.match(/<link>(.*?)<\/link>/)?.[1];
+          let desc = item.match(/<description>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/description>/s)?.[1] || "";
+          let pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1];
+
+          // 圖片抓取與廣告過濾
+          let img = "";
+          const imgTags = (desc + item).matchAll(/src="([^">]+?\.(?:jpg|jpeg|png|webp)[^">]*?)"/gi);
+          for (let match of imgTags) {
+            if (!/logo|icon|avatar|pixel|fb|line|ads/i.test(match[1])) {
+              img = match[1]; break;
+            }
+          }
+          if (img && img.startsWith('//')) img = 'https:' + img;
+
+          if (selected[i].name === "遊民星空") { title = s2t(title); desc = s2t(desc); }
+
+          articles.push({
+            title: title.trim(), url: link, image: img, source: selected[i].name,
+            ts: new Date(pubDate).getTime() || Date.now(),
+            time: pubDate ? pubDate.slice(5, 16) : "",
+            content: (title + desc).toUpperCase()
+          });
+        });
+      }
+    });
+
+    // 關鍵字分類
+    if (category && category !== 'all') {
+      const keys = { tv:['PS5','SWITCH','XBOX','主機'], pc:['PC','STEAM','GPU','電腦'], mobile:['MOBILE','IOS','ANDROID','手遊'], esports:['ESPORTS','電競','比賽'] };
+      articles = articles.filter(a => keys[category].some(k => a.content.includes(k)));
     }
-  } catch (error) {
-    grid.innerHTML = "<div style='padding:50px; text-align:center; color:red;'>載入失敗，請確認後端 API 是否部署成功。</div>";
-  }
-}
 
-// 首次載入
-fetchData();
-</script>
-</body>
-</html>
+    // 左側功能排序與篩選
+    if (sort === 'gossip') {
+      articles = articles.filter(a => ['RUMOR','LEAK','傳聞','爆料','內幕','疑似'].some(k => a.content.includes(k)));
+    } else if (sort === 'hot') {
+      articles.sort((a,b) => b.content.length - a.content.length); // 模擬熱度
+    }
+
+    res.status(200).json({ articles: articles.sort((a,b) => b.ts - a.ts).slice(0, 40) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+}
