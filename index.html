@@ -3,52 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>遊戲人間 | 權威遊戲聚合</title>
+<title>遊戲人間 | 權威影音聚合</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
   :root { --tiffany: #81D8D0; --bg: #f4f7f6; --text: #1a1a1a; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Noto Sans TC', sans-serif; line-height: 1.6; }
+  body { background: var(--bg); color: var(--text); font-family: 'Noto Sans TC', sans-serif; }
   .container { width: 95%; max-width: 1200px; margin: 0 auto; }
   
-  /* 導覽列：Logo 在左，計時器在右 */
   nav { background: #fff; padding: 12px 0; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
   .nav-flex { display: flex; justify-content: space-between; align-items: center; }
   .logo-main { font-size: 1.6rem; font-weight: 900; letter-spacing: -1px; text-decoration: none; color: #333; }
   .logo-main span { color: var(--tiffany); }
-  .update-timer { font-size: 0.85rem; color: #888; font-weight: 500; background: #f0f0f0; padding: 4px 14px; border-radius: 20px; }
+  .update-timer { font-size: 0.8rem; color: #888; background: #eee; padding: 4px 12px; border-radius: 20px; }
 
-  /* 雜誌風格主看板 */
-  .hero-section { padding: 25px 0; }
-  .hero-grid { display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: repeat(2, 1fr); gap: 15px; height: 550px; }
-  .hero-item { position: relative; border-radius: 16px; overflow: hidden; background: #e0e0e0; text-decoration: none; display: block; box-shadow: 0 10px 30px rgba(0,0,0,0.08); transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); }
-  .hero-item:first-child { grid-row: span 2; } 
-  .hero-item img { width: 100%; height: 100%; object-fit: cover; transition: 0.6s; }
-  .hero-item:hover img { transform: scale(1.05); }
-  .hero-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.85)); padding: 25px; color: white; }
-  .hero-source { display: inline-block; padding: 2px 10px; border-radius: 4px; background: var(--tiffany); color: white; font-size: 0.75rem; margin-bottom: 10px; font-weight: 900; }
-  .hero-title { font-weight: 700; font-size: 1.4rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .hero-item:not(:first-child) .hero-title { font-size: 1.05rem; }
+  /* 影片橫向滑動區 */
+  .video-section { padding: 30px 0; overflow-x: auto; display: flex; gap: 20px; scrollbar-width: none; }
+  .video-section::-webkit-scrollbar { display: none; }
+  .video-card { min-width: 400px; background: #000; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+  .video-wrapper { width: 100%; aspect-ratio: 16/9; }
+  .video-wrapper iframe { width: 100%; height: 100%; border: none; }
+  .video-info { padding: 15px; color: #fff; }
 
-  /* 下方新聞清單 */
-  .main-feed { background: #fff; border-radius: 24px; padding: 35px; box-shadow: 0 4px 30px rgba(0,0,0,0.04); margin-bottom: 50px; }
-  .news-card { display: grid; grid-template-columns: 220px 1fr; gap: 30px; padding: 22px 0; border-bottom: 1px solid #f0f0f0; text-decoration: none; color: inherit; align-items: center; transition: 0.2s; }
-  .news-card:hover { transform: translateX(8px); }
-  .news-card:last-child { border-bottom: none; }
-  .news-thumb { aspect-ratio: 16/10; border-radius: 12px; overflow: hidden; background: #f0f0f0; }
-  .news-thumb img { width: 100%; height: 100%; object-fit: cover; }
-  .news-source-tag { color: var(--tiffany); font-weight: 900; font-size: 0.8rem; margin-bottom: 6px; display: block; }
-  .news-title { font-size: 1.25rem; font-weight: 700; color: #2c3e50; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  /* 文字新聞清單 */
+  .main-feed { background: #fff; border-radius: 24px; padding: 25px; box-shadow: 0 4px 30px rgba(0,0,0,0.04); margin-bottom: 50px; }
+  .news-card { display: grid; grid-template-columns: 180px 1fr; gap: 25px; padding: 18px 0; border-bottom: 1px solid #f0f0f0; text-decoration: none; color: inherit; align-items: center; }
+  .logo-placeholder { aspect-ratio: 16/9; border-radius: 10px; background: #81D8D0; display: flex; align-items: center; justify-content: center; font-weight: 900; color: white; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px; }
+  .news-title { font-size: 1.15rem; font-weight: 700; line-height: 1.4; }
 
-  .loader { text-align: center; padding: 60px; color: var(--tiffany); font-weight: 700; font-size: 1.1rem; }
-
-  @media (max-width: 850px) {
-    .hero-grid { grid-template-columns: 1fr; height: auto; }
-    .hero-item { aspect-ratio: 16/9; }
-    .hero-item:first-child { grid-row: auto; }
-    .news-card { grid-template-columns: 1fr; gap: 15px; }
-    .news-thumb { width: 100%; }
-    .hero-title { font-size: 1.1rem; }
+  @media (max-width: 768px) {
+    .video-card { min-width: 300px; }
+    .news-card { grid-template-columns: 100px 1fr; gap: 15px; }
+    .logo-placeholder { font-size: 0.7rem; }
   }
 </style>
 </head>
@@ -56,82 +42,76 @@
 
 <nav>
   <div class="container nav-flex">
-    <a href="/" class="logo-main">遊戲<span>人間</span></a>
-    <div id="nextUpdate" class="update-timer">同步中...</div>
+    <a href="#" class="logo-main">遊戲<span>人間</span></a>
+    <div id="nextUpdate" class="update-timer">更新中...</div>
   </div>
 </nav>
 
 <div class="container">
-  <section class="hero-section">
-    <div id="heroGrid" class="hero-grid">
-      <div style="grid-column: span 2; text-align:center; padding:50px; color:#ccc;">正在載入焦點新聞...</div>
-    </div>
-  </section>
+  <section id="videoRow" class="video-section"></section>
 
   <main class="main-feed">
-    <div id="newsGrid" class="loader">正在同步權威情報來源...</div>
+    <div id="newsGrid" class="loader">同步中...</div>
   </main>
 </div>
 
 <script>
-let refreshInterval = 600000; // 10 分鐘 (600,000 毫秒)
-let nextRefreshTime = Date.now() + refreshInterval;
+let nextRefreshTime = Date.now() + 600000;
 
-function updateCountdown() {
-  const now = Date.now();
-  const diff = Math.max(0, Math.floor((nextRefreshTime - now) / 1000));
-  const mins = Math.floor(diff / 60);
-  const secs = diff % 60;
-  document.getElementById('nextUpdate').innerText = `下次自動更新：${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  if (diff <= 0) {
-    nextRefreshTime = Date.now() + refreshInterval;
-    fetchData();
-  }
-}
+// 定義各來源的 Logo 配色或純文字顯示
+const sourceStyles = {
+  'PlayStation': '#003087',
+  'Xbox Wire': '#107c10',
+  'Steam News': '#171a21',
+  'Nintendo': '#e60012',
+  'IGN': '#bf1313',
+  '巴哈姆特': '#00adef',
+  '4Gamers': '#222'
+};
 
 async function fetchData() {
-  const heroGrid = document.getElementById('heroGrid');
-  const newsGrid = document.getElementById('newsGrid');
-
   try {
     const res = await fetch('/api/news');
     const data = await res.json();
-    
-    if (data.articles && data.articles.length > 0) {
-      // 1. 渲染主看板 (前 3 則)
-      // 使用 Tiffany Blue 背景的佔位圖確保圖文一致性
-      const placeholder = (text) => `https://via.placeholder.com/800x450/81D8D0/ffffff.png?text=${text}`;
+    const videoRow = document.getElementById('videoRow');
+    const newsGrid = document.getElementById('newsGrid');
 
-      heroGrid.innerHTML = data.articles.slice(0, 3).map((a, idx) => `
-        <a href="${a.url}" target="_blank" class="hero-item">
-          <img src="${a.image || placeholder(a.source)}" onerror="this.src='${placeholder(a.source)}';">
-          <div class="hero-overlay">
-            <span class="hero-source">${a.source}</span>
-            <div class="hero-title">${a.title}</div>
-          </div>
-        </a>`).join('');
+    // 1. 過濾出有影片的 (放在上方滑動區)
+    const videoArticles = data.articles.filter(a => a.videoId);
+    videoRow.innerHTML = videoArticles.map(a => `
+      <div class="video-card">
+        <div class="video-wrapper">
+          <iframe src="https://www.youtube.com/embed/${a.videoId}" allowfullscreen></iframe>
+        </div>
+        <div class="video-info">
+          <div style="color:var(--tiffany); font-size:0.7rem; font-weight:900;">${a.source}</div>
+          <div style="font-size:0.9rem; font-weight:700;">${a.title}</div>
+        </div>
+      </div>
+    `).join('');
 
-      // 2. 渲染新聞列表 (其餘)
-      newsGrid.innerHTML = data.articles.slice(3).map(a => `
-        <a href="${a.url}" target="_blank" class="news-card">
-          <div class="news-thumb">
-            <img src="${a.image || placeholder('NEWS')}" onerror="this.src='${placeholder('NEWS')}';">
-          </div>
-          <div class="news-info">
-            <span class="news-source-tag">${a.source}</span>
-            <div class="news-title">${a.title}</div>
-          </div>
-        </a>`).join('');
-    } else {
-      newsGrid.innerHTML = "目前暫無更新，請稍後再試。";
-    }
-  } catch (e) {
-    newsGrid.innerHTML = "連線失敗，請檢查部署狀態。";
-    console.error(e);
-  }
+    // 2. 全部清單 (放在下方，沒影片的顯示 Logo)
+    newsGrid.innerHTML = data.articles.map(a => `
+      <a href="${a.url}" target="_blank" class="news-card">
+        ${a.videoId ? 
+          `<div class="logo-placeholder" style="background:#000; font-size:0.8rem;">VIDEO PLAY</div>` : 
+          `<div class="logo-placeholder" style="background:${sourceStyles[a.source] || '#81D8D0'}">${a.source}</div>`
+        }
+        <div>
+          <div style="color:#888; font-size:0.75rem; font-weight:900; margin-bottom:5px;">${a.source}</div>
+          <div class="news-title">${a.title}</div>
+        </div>
+      </a>
+    `).join('');
+  } catch (e) { console.error(e); }
 }
 
-// 啟動倒數計時與抓取
+function updateCountdown() {
+  const diff = Math.max(0, Math.floor((nextRefreshTime - Date.now()) / 1000));
+  document.getElementById('nextUpdate').innerText = `自動更新：${Math.floor(diff/60)}:${(diff%60).toString().padStart(2,'0')}`;
+  if (diff <= 0) { nextRefreshTime = Date.now() + 600000; fetchData(); }
+}
+
 setInterval(updateCountdown, 1000);
 fetchData();
 </script>
