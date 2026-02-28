@@ -1,6 +1,7 @@
 export default async function handler(req, res) {
+  // 降低緩存時間至 60 秒，確保內容不會卡在舊日期
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=300');
+  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
 
   const { region, category, sort } = req.query;
 
@@ -29,76 +30,57 @@ export default async function handler(req, res) {
       fetch(s.url, { headers: { 'User-Agent': 'Mozilla/5.0' } }).then(r => r.text())
     ));
 
-    let articles = [];
+    let allArticles = [];
+    const now = Date.now();
+    const threeDaysAgo = now - (3 * 24 * 60 * 60 * 1000);
+
     results.forEach((result, i) => {
       if (result.status === 'fulfilled') {
+        const sourceName = selected[i].name;
         const xml = result.value;
         const items = xml.split('<item>').slice(1);
-        
+        let sourceArticles = [];
+
         items.forEach(item => {
           let title = item.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/)?.[1] || "";
           let link = item.match(/<link>(.*?)<\/link>/)?.[1];
           let desc = item.match(/<description>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/description>/s)?.[1] || "";
-          let encoded = item.match(/<content:encoded>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/content:encoded>/s)?.[1] || "";
           let pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1];
+          let ts = new Date(pubDate).getTime() || now;
 
-          // --- 核心改進：精準圖片選擇器 ---
+          // 條件 1：僅保留近 3 日的新聞
+          if (ts < threeDaysAgo) return;
+
+          // 圖片抓取
           let img = "";
-          // 1. 優先權 A：媒體定義的專屬封圖 (media:content 或 enclosure)
-          const mediaMatch = item.match(/<(?:media:content|enclosure)[^>]+url="([^">]+)"/i);
-          
-          // 2. 優先權 B：從描述中掃描，並過濾雜訊
-          let allImgTags = (desc + encoded).matchAll(/src="([^">]+?\.(?:jpg|jpeg|png|webp)[^">]*?)"/gi);
-          let candidateImg = "";
-          
-          for (let match of allImgTags) {
-            let url = match[1];
-            // 排除清單：包含這些字眼的通常是廣告或小圖
-            const noise = /logo|icon|avatar|pixel|track|share|fb|line|follow|ads|spacer/i.test(url);
-            if (!noise) {
-              candidateImg = url;
-              break; // 抓到第一個「不是廣告」的圖就停止
+          const imgTags = (desc + item).matchAll(/src="([^">]+?\.(?:jpg|jpeg|png|webp)[^">]*?)"/gi);
+          for (let match of imgTags) {
+            if (!/logo|icon|avatar|pixel|fb|line|ads/i.test(match[1])) {
+              img = match[1]; break;
             }
           }
-
-          img = (mediaMatch ? mediaMatch[1] : candidateImg) || "";
           if (img && img.startsWith('//')) img = 'https:' + img;
+          if (sourceName === "遊民星空") { title = s2t(title); desc = s2t(desc); }
 
-          // 簡轉繁處理
-          if (["遊民星空", "PC Gamer"].includes(selected[i].name)) {
-            title = s2t(title);
-            desc = s2t(desc);
-          }
+          // 計算熱度權重 (模擬觀看率)：標題長度 + 關鍵字密度
+          const hotScore = title.length + (['限時', '免費', '首發', '大作', '爆料'].some(k => title.includes(k)) ? 50 : 0);
 
-          if (title && link) {
-            articles.push({
-              title: title.trim(),
-              url: link.trim(),
-              image: img,
-              source: selected[i].name,
-              ts: new Date(pubDate).getTime() || Date.now(),
-              time: pubDate ? pubDate.slice(5, 16) : "",
-              desc: desc.replace(/<[^>]*>/g, '').slice(0, 100)
-            });
-          }
+          sourceArticles.push({
+            title: title.trim(), url: link, image: img, source: sourceName,
+            ts, hotScore,
+            time: pubDate ? pubDate.slice(5, 16) : ""
+          });
         });
+
+        // 條件 2：每個網站僅取熱度最高的 6 則
+        sourceArticles.sort((a, b) => b.hotScore - a.hotScore);
+        allArticles.push(...sourceArticles.slice(0, 6));
       }
     });
 
-    // 關鍵字過濾邏輯
-    if (category && category !== 'all') {
-      const keywords = {
-        tv: ['PS5', 'Switch', 'Nintendo', 'Xbox', 'Console', '家機', '任天堂'],
-        pc: ['PC', 'Steam', 'Epic', 'RTX', 'GPU', '電腦', '顯卡'],
-        mobile: ['Mobile', 'iOS', 'Android', '手機', '手遊', 'iPhone'],
-        esports: ['Esports', 'Tournament', '電競', '比賽', '選手', '聯賽', '戰隊']
-      };
-      const keys = keywords[category.toLowerCase()];
-      articles = articles.filter(a => keys.some(k => (a.title + a.desc).toUpperCase().includes(k.toUpperCase())));
-    }
+    // 最後根據時間排序，確保最頂端是最新資訊
+    allArticles.sort((a, b) => b.ts - a.ts);
 
-    res.status(200).json({ articles: articles.sort((a, b) => b.ts - a.ts).slice(0, 45) });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
+    res.status(200).json({ articles: allArticles });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 }
