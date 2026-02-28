@@ -6,7 +6,7 @@ export default async function handler(req, res) {
 
   const { region, proxy } = req.query;
 
-  // 圖片代理：解決巴哈姆特破圖
+  // 核心功能：圖片代理，解決巴哈姆特防盜連
   if (proxy) {
     try {
       const imgRes = await fetch(decodeURIComponent(proxy), {
@@ -17,21 +17,22 @@ export default async function handler(req, res) {
     } catch (e) { return res.status(404).end(); }
   }
 
+  // 定義 RSS 來源 (完全免費)
   const twSources = [
     { name: "巴哈姆特", url: "https://gnn.gamer.com.tw/rss.xml" },
     { name: "4Gamers", url: "https://www.4gamers.com.tw/rss/latest" },
     { name: "遊戲基地", url: "https://www.gamebase.com.tw/news/gb_news.xml" }
   ];
-
   const globalSources = [
     { name: "IGN", url: "https://feeds.feedburner.com/ign/all" },
-    { name: "PC Gamer", url: "https://www.pcgamer.com/rss/" },
-    { name: "Eurogamer", url: "https://www.eurogamer.net/feed/news" }
+    { name: "GameSpot", url: "https://www.gamespot.com/feeds/news/" },
+    { name: "PC Gamer", url: "https://www.pcgamer.com/rss/" }
   ];
 
   let selected = region === 'tw' ? twSources : (region === 'global' ? globalSources : [...twSources, ...globalSources]);
 
   try {
+    // 使用 rss2json 服務將 XML 轉為 JSON (這部分也是免費且額度極高)
     const results = await Promise.all(selected.map(s => 
       fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(s.url)}`).then(r => r.json())
     ));
@@ -47,6 +48,7 @@ export default async function handler(req, res) {
             const m = item.description.match(/<img[^>]+src="([^">]+)"/);
             if (m) img = m[1];
           }
+          // 巴哈圖片修正
           if (img && img.includes('gamer.com.tw')) {
             img = `/api/news?proxy=${encodeURIComponent(img.replace('/S/', '/B/'))}`;
           }
@@ -69,6 +71,6 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ articles: [...topPicks, ...others] });
   } catch (err) {
-    return res.status(500).json({ error: "API 請求次數過多或來源異常" });
+    return res.status(500).json({ error: "伺服器連線異常" });
   }
 }
