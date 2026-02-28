@@ -6,14 +6,13 @@ export default async function handler(req, res) {
 
   const sources = {
     tw: [
-      { name: "4Gamers", url: "https://www.4gamers.com.tw/rss/latest" },
-      { name: "UDN遊戲", url: "https://game.udn.com/rss/news/2003/2004" },
-      { name: "遊戲基地", url: "https://www.gamebase.com.tw/news/rss" } // 替換為 Gamebase
+      { name: "遊戲基地", url: "https://news.gamebase.com.tw/", type: "html" },
+      { name: "4Gamers", url: "https://www.4gamers.com.tw/rss/latest", type: "rss" },
+      { name: "UDN遊戲", url: "https://game.udn.com/rss/news/2003/2004", type: "rss" }
     ],
     global: [
-      { name: "遊民星空", url: "https://www.gamersky.com/rssfeed/01.xml" },
-      { name: "IGN", url: "https://feeds.feedburner.com/ign/all" },
-      { name: "PC Gamer", url: "https://www.pcgamer.com/rss/" }
+      { name: "遊民星空", url: "https://www.gamersky.com/rssfeed/01.xml", type: "rss" },
+      { name: "IGN", url: "https://feeds.feedburner.com/ign/all", type: "rss" }
     ]
   };
 
@@ -26,55 +25,71 @@ export default async function handler(req, res) {
 
   try {
     const results = await Promise.allSettled(selected.map(s => 
-      fetch(s.url, { 
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
-        signal: AbortSignal.timeout(6000)
-      }).then(r => r.text())
+      fetch(s.url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' } }).then(r => r.text())
     ));
 
     let allArticles = [];
     const now = Date.now();
-    const threeDaysAgo = now - (3 * 24 * 60 * 60 * 1000);
 
     results.forEach((result, i) => {
-      if (result.status === 'fulfilled' && result.value.includes('<item>')) {
-        const sourceName = selected[i].name;
-        const xml = result.value;
-        const items = xml.split('<item>').slice(1);
-        let sourceArticles = [];
+      if (result.status === 'fulfilled') {
+        const source = selected[i];
+        const html = result.value;
 
-        items.forEach(item => {
-          let title = item.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/)?.[1] || "";
-          let link = item.match(/<link>(.*?)<\/link>/)?.[1];
-          let desc = item.match(/<description>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/description>/s)?.[1] || "";
-          let pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1];
-          let ts = new Date(pubDate).getTime() || now;
-
-          if (ts < threeDaysAgo) return;
-
-          let img = "";
-          // Gamebase 與 4Gamers 圖片抓取邏輯強化
-          const imgMatch = (desc + item).match(/src="([^">]+?\.(?:jpg|jpeg|png|webp|gif)[^">]*?)"/i) ||
-                           item.match(/<(?:media:content|enclosure)[^>]+url="([^">]+)"/i);
-          if (imgMatch) img = imgMatch[1];
-          
-          if (img && img.startsWith('//')) img = 'https:' + img;
-          if (sourceName === "遊民星空") { title = s2t(title); desc = s2t(desc); }
-
-          const hotScore = title.length + (['限時', '免費', '首發', '大作', '新作'].some(k => title.includes(k)) ? 50 : 0);
-
-          sourceArticles.push({
-            title: title.trim(), url: link.trim(), image: img, source: sourceName,
-            ts, hotScore, time: pubDate ? pubDate.slice(5, 16) : ""
+        if (source.name === "遊戲基地") {
+          // --- 遊戲基地網頁爬蟲邏輯 ---
+          // 抓取網頁中 <section> 內的文章塊
+          const items = html.split('<li class="NewsList_item').slice(1, 10);
+          items.forEach(item => {
+            let title = item.match(/<h3[^>]*>(.*?)<\/h3>/)?.[1] || "";
+            let link = item.match(/href="([^"]+)"/)?.[1];
+            let img = item.match(/src="([^"]+)"/)?.[1];
+            
+            if (title && link) {
+              allArticles.push({
+                title: title.replace(/<[^>]*>/g, '').trim(),
+                url: link.startsWith('http') ? link : `https://news.gamebase.com.tw${link}`,
+                image: img || "",
+                source: "遊戲基地",
+                ts: now - (allArticles.length * 1000), // 模擬權重排序
+                time: "今日精選"
+              });
+            }
           });
-        });
+        } else {
+          // --- 標準 RSS 邏輯 ---
+          const items = html.split('<item>').slice(1);
+          items.forEach(item => {
+            let title = item.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/)?.[1] || "";
+            let link = item.match(/<link>(.*?)<\/link>/)?.[1];
+            let pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1];
+            let desc = item.match(/<description>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/description>/s)?.[1] || "";
+            
+            let img = "";
+            const media = item.match(/<(?:media:content|enclosure)[^>]+url="([^">]+)"/i);
+            if (media) img = media[1];
+            else {
+              const imgTags = (desc + item).match(/src="([^">]+?\.(?:jpg|jpeg|png|webp)[^">]*?)"/i);
+              if (imgTags) img = imgTags[1];
+            }
 
-        sourceArticles.sort((a, b) => b.hotScore - a.hotScore);
-        allArticles.push(...sourceArticles.slice(0, 6)); // 每個來源取 6 則
+            if (source.name === "遊民星空") title = s2t(title);
+
+            allArticles.push({
+              title: title.trim(),
+              url: link.trim(),
+              image: img,
+              source: source.name,
+              ts: new Date(pubDate).getTime() || now,
+              time: pubDate ? pubDate.slice(5, 16) : ""
+            });
+          });
+        }
       }
     });
 
+    // 每個來源限制數量並排序
     allArticles.sort((a, b) => b.ts - a.ts);
-    res.status(200).json({ articles: allArticles });
+    res.status(200).json({ articles: allArticles.slice(0, 45) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 }
