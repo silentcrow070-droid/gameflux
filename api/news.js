@@ -6,18 +6,21 @@ export default async function handler(req, res) {
 
   const { region, proxy } = req.query;
 
-  // 核心功能：圖片代理，解決巴哈姆特防盜連
+  // 終極圖片代理邏輯：解決巴哈姆特圖片顯示問題
   if (proxy) {
     try {
       const imgRes = await fetch(decodeURIComponent(proxy), {
-        headers: { 'Referer': 'https://gnn.gamer.com.tw/' }
+        headers: { 
+          'Referer': 'https://gnn.gamer.com.tw/',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
       });
+      if (!imgRes.ok) throw new Error('Proxy error');
       res.setHeader('Content-Type', imgRes.headers.get('content-type') || 'image/jpeg');
       return imgRes.body.pipe(res);
     } catch (e) { return res.status(404).end(); }
   }
 
-  // 定義 RSS 來源 (完全免費)
   const twSources = [
     { name: "巴哈姆特", url: "https://gnn.gamer.com.tw/rss.xml" },
     { name: "4Gamers", url: "https://www.4gamers.com.tw/rss/latest" },
@@ -25,30 +28,34 @@ export default async function handler(req, res) {
   ];
   const globalSources = [
     { name: "IGN", url: "https://feeds.feedburner.com/ign/all" },
-    { name: "GameSpot", url: "https://www.gamespot.com/feeds/news/" },
     { name: "PC Gamer", url: "https://www.pcgamer.com/rss/" }
   ];
 
   let selected = region === 'tw' ? twSources : (region === 'global' ? globalSources : [...twSources, ...globalSources]);
 
   try {
-    // 使用 rss2json 服務將 XML 轉為 JSON (這部分也是免費且額度極高)
-    const results = await Promise.all(selected.map(s => 
-      fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(s.url)}`).then(r => r.json())
+    // 這裡使用 Promise.allSettled 替代 Promise.all，確保就算一個網站掛掉，其他網站依然能顯示
+    const results = await Promise.allSettled(selected.map(s => 
+      fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(s.url)}&api_key=00000000000000000000000000000000`) // 使用預設 Key 增加穩定性
+      .then(r => r.json())
     ));
 
     let topPicks = []; 
     let others = [];
 
-    results.forEach((data, i) => {
-      if (data.status === 'ok') {
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled' && result.value.status === 'ok') {
+        const data = result.value;
         data.items.forEach((item, idx) => {
           let img = item.enclosure?.link || item.thumbnail || "";
+          
+          // 如果沒圖，嘗試從內容挖掘
           if (!img && item.description) {
             const m = item.description.match(/<img[^>]+src="([^">]+)"/);
             if (m) img = m[1];
           }
-          // 巴哈圖片修正
+          
+          // 針對巴哈姆特圖片的特殊處理
           if (img && img.includes('gamer.com.tw')) {
             img = `/api/news?proxy=${encodeURIComponent(img.replace('/S/', '/B/'))}`;
           }
@@ -71,6 +78,6 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ articles: [...topPicks, ...others] });
   } catch (err) {
-    return res.status(500).json({ error: "伺服器連線異常" });
+    return res.status(500).json({ error: "RSS 服務暫時無法連線" });
   }
 }
