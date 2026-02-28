@@ -4,7 +4,6 @@ export default async function handler(req, res) {
 
   const { region, category, sort } = req.query;
 
-  // 1. 數據來源：移除防護過嚴的巴哈，改用穩定且高品質的來源
   const sources = {
     tw: [
       { name: "4Gamers", url: "https://www.4gamers.com.tw/rss/latest" },
@@ -18,7 +17,6 @@ export default async function handler(req, res) {
     ]
   };
 
-  // 簡轉繁字典 (處理中國來源)
   const s2t = (s) => {
     const d = { '游':'遊','戏':'戲','电':'電','竞':'競','发':'發','机':'機','体':'體','后':'後','里':'裡','开':'開','关':'關' };
     return s.replace(/[游戏电竞发机体后里开关]/g, m => d[m] || m);
@@ -28,9 +26,7 @@ export default async function handler(req, res) {
 
   try {
     const results = await Promise.allSettled(selected.map(s => 
-      fetch(s.url, { 
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36' } 
-      }).then(r => r.text())
+      fetch(s.url, { headers: { 'User-Agent': 'Mozilla/5.0' } }).then(r => r.text())
     ));
 
     let articles = [];
@@ -46,17 +42,30 @@ export default async function handler(req, res) {
           let encoded = item.match(/<content:encoded>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/content:encoded>/s)?.[1] || "";
           let pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1];
 
-          // --- 強化版圖片掃描邏輯 ---
+          // --- 核心改進：精準圖片選擇器 ---
           let img = "";
-          const fullSearch = desc + encoded + item;
-          const imgMatch = fullSearch.match(/src="([^">]+?\.(?:jpg|jpeg|png|webp|gif)[^">]*?)"/i) || 
-                           item.match(/<media:content[^>]+url="([^">]+)"/i) ||
-                           item.match(/<enclosure[^>]+url="([^">]+)"/i);
-          if (imgMatch) img = imgMatch[1];
+          // 1. 優先權 A：媒體定義的專屬封圖 (media:content 或 enclosure)
+          const mediaMatch = item.match(/<(?:media:content|enclosure)[^>]+url="([^">]+)"/i);
+          
+          // 2. 優先權 B：從描述中掃描，並過濾雜訊
+          let allImgTags = (desc + encoded).matchAll(/src="([^">]+?\.(?:jpg|jpeg|png|webp)[^">]*?)"/gi);
+          let candidateImg = "";
+          
+          for (let match of allImgTags) {
+            let url = match[1];
+            // 排除清單：包含這些字眼的通常是廣告或小圖
+            const noise = /logo|icon|avatar|pixel|track|share|fb|line|follow|ads|spacer/i.test(url);
+            if (!noise) {
+              candidateImg = url;
+              break; // 抓到第一個「不是廣告」的圖就停止
+            }
+          }
+
+          img = (mediaMatch ? mediaMatch[1] : candidateImg) || "";
           if (img && img.startsWith('//')) img = 'https:' + img;
 
-          // 中國來源處理
-          if (["遊民星空", "PC Gamer"].includes(selected[i].name) && title) {
+          // 簡轉繁處理
+          if (["遊民星空", "PC Gamer"].includes(selected[i].name)) {
             title = s2t(title);
             desc = s2t(desc);
           }
@@ -76,7 +85,7 @@ export default async function handler(req, res) {
       }
     });
 
-    // 關鍵字分類與八卦過濾
+    // 關鍵字過濾邏輯
     if (category && category !== 'all') {
       const keywords = {
         tv: ['PS5', 'Switch', 'Nintendo', 'Xbox', 'Console', '家機', '任天堂'],
@@ -88,20 +97,7 @@ export default async function handler(req, res) {
       articles = articles.filter(a => keys.some(k => (a.title + a.desc).toUpperCase().includes(k.toUpperCase())));
     }
 
-    if (sort === 'gossip') {
-      const gossipKeys = ['Rumor', 'Leak', 'Insider', '疑似', '傳聞', '爆料', '內幕'];
-      articles = articles.filter(a => gossipKeys.some(k => (a.title + a.desc).toUpperCase().includes(k.toUpperCase())));
-    } else if (sort === 'hot') {
-      const hotKeys = ['Hot', 'Top', 'Best', '熱門', '必玩', '排行', '大作', '首發'];
-      articles.sort((a, b) => {
-        const score = (t) => hotKeys.filter(k => t.toUpperCase().includes(k.toUpperCase())).length;
-        return score(b.title) - score(a.title) || b.ts - a.ts;
-      });
-    } else {
-      articles.sort((a, b) => b.ts - a.ts);
-    }
-
-    res.status(200).json({ articles: articles.slice(0, 40) });
+    res.status(200).json({ articles: articles.sort((a, b) => b.ts - a.ts).slice(0, 45) });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
