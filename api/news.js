@@ -2,50 +2,33 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=300');
 
-  const { region, category, sort, proxy } = req.query;
+  const { region, category, sort } = req.query;
 
-  // 1. 圖片代理（解決巴哈圖片防盜連）
-  if (proxy) {
-    try {
-      const imgRes = await fetch(decodeURIComponent(proxy), { 
-        headers: { 
-          'Referer': 'https://gnn.gamer.com.tw/',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'
-        } 
-      });
-      const arrayBuffer = await imgRes.arrayBuffer();
-      res.setHeader('Content-Type', imgRes.headers.get('content-type') || 'image/jpeg');
-      return res.send(Buffer.from(arrayBuffer));
-    } catch (e) { return res.status(404).end(); }
-  }
-
-  // 2. 數據來源
+  // 1. 數據來源 (移除巴哈，加入台灣穩定來源與中國前三大)
   const sources = {
     tw: [
-      { name: "巴哈姆特", url: "https://gnn.gamer.com.tw/rss.xml" },
-      { name: "4Gamers", url: "https://www.4gamers.com.tw/rss/latest" }
+      { name: "UDN 遊戲", url: "https://game.udn.com/rss/news/2003/2004" },
+      { name: "4Gamers", url: "https://www.4gamers.com.tw/rss/latest" },
+      { name: "鏡遊戲", url: "https://www.mirrormedia.mg/rss/category/game" }
     ],
     global: [
-      { name: "IGN", url: "https://feeds.feedburner.com/ign/all" },
-      { name: "PC Gamer", url: "https://www.pcgamer.com/rss/" }
+      { name: "遊民星空", url: "https://www.gamersky.com/rssfeed/01.xml" },
+      { name: "3DM單機", url: "https://www.3dmgame.com/sitemap/news.xml" },
+      { name: "IGN", url: "https://feeds.feedburner.com/ign/all" }
     ]
+  };
+
+  // 簡易簡轉繁字典 (針對常見字)
+  const s2t = (str) => {
+    const dict = { '游': '遊', '戏': '戲', '电': '電', '竞': '競', '发': '發', '机': '機', '体': '體', '个': '個', '后': '後', '里': '裡', '开': '開', '关': '關' };
+    return str.replace(/[游戏电竞发机体个后里开关]/g, m => dict[m] || m);
   };
 
   let selected = region === 'tw' ? sources.tw : (region === 'global' ? sources.global : [...sources.tw, ...sources.global]);
 
   try {
-    // 強化抓取標頭，模擬真實瀏覽器，避開 403 錯誤
     const results = await Promise.allSettled(selected.map(s => 
-      fetch(s.url, { 
-        headers: { 
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
-          'Accept': 'text/xml,application/xml,application/xhtml+xml',
-          'Cache-Control': 'no-cache'
-        } 
-      }).then(async r => {
-        if (!r.ok) throw new Error(`Status ${r.status}`);
-        return r.text();
-      })
+      fetch(s.url, { headers: { 'User-Agent': 'Mozilla/5.0' } }).then(r => r.text())
     ));
 
     let articles = [];
@@ -54,37 +37,44 @@ export default async function handler(req, res) {
         const xml = result.value;
         const items = xml.split('<item>').slice(1);
         items.forEach(item => {
-          const title = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)?.[1] || item.match(/<title>(.*?)<\/title>/)?.[1];
+          let title = item.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/)?.[1] || "";
+          let desc = item.match(/<description>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/description>/s)?.[1] || "";
           const link = item.match(/<link>(.*?)<\/link>/)?.[1];
           const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1];
-          const desc = item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/)?.[1] || item.match(/<description>(.*?)<\/description>/)?.[1] || "";
-          
-          let img = "";
-          const imgMatch = desc.match(/<img[^>]+src="([^">]+)"/) || item.match(/<media:content[^>]+url="([^">]+)"/);
-          if (imgMatch) img = imgMatch[1];
 
-          if (img && img.includes('gamer.com.tw')) {
-            img = `/api/news?proxy=${encodeURIComponent(img.replace('/S/', '/B/'))}`;
+          // 如果是中國網站，進行簡轉繁
+          if (selected[i].name === "遊民星空" || selected[i].name === "3DM單機") {
+            title = s2t(title);
+            desc = s2t(desc);
           }
 
+          let img = desc.match(/<img[^>]+src="([^">]+)"/)?.[1] || "";
+          
           articles.push({
-            title: title || "無標題",
-            url: link,
-            image: img,
+            title, url: link, image: img,
             source: selected[i].name,
-            ts: new Date(pubDate).getTime(),
+            ts: new Date(pubDate).getTime() || Date.now(),
             time: pubDate ? pubDate.slice(5, 16) : "",
-            desc: desc
+            desc: desc.replace(/<[^>]*>/g, '').slice(0, 80)
           });
         });
       }
     });
 
-    // 篩選與排序邏輯（維持中英雙語）
-    // ... (此處保留之前的過濾代碼) ...
+    // 關鍵字過濾 (保持原有的中英雙語邏輯)
+    if (category && category !== 'all') {
+      const keywords = {
+        tv: ['PS5', 'Switch', 'Xbox', 'Console', '家機', '主機'],
+        pc: ['PC', 'Steam', 'Epic', 'RTX', '電腦', '顯卡'],
+        mobile: ['Mobile', 'iOS', 'Android', '手遊', '手機'],
+        esports: ['Esports', '電競', '比賽', '賽事', '選手']
+      };
+      const keys = keywords[category.toLowerCase()];
+      articles = articles.filter(a => keys.some(k => (a.title + a.desc).toUpperCase().includes(k.toUpperCase())));
+    }
 
-    res.status(200).json({ articles: articles.slice(0, 45) });
+    res.status(200).json({ articles: articles.sort((a,b) => b.ts - a.ts).slice(0, 45) });
   } catch (e) {
-    res.status(500).json({ error: "抓取失敗，可能是媒體伺服器暫時阻擋", detail: e.message });
+    res.status(500).json({ error: "Failed to fetch news" });
   }
 }
