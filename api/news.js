@@ -1,9 +1,8 @@
 export default async function handler(req, res) {
-  // 降低緩存時間至 60 秒，確保內容不會卡在舊日期
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
 
-  const { region, category, sort } = req.query;
+  const { region, category } = req.query;
 
   const sources = {
     tw: [
@@ -48,10 +47,8 @@ export default async function handler(req, res) {
           let pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1];
           let ts = new Date(pubDate).getTime() || now;
 
-          // 條件 1：僅保留近 3 日的新聞
           if (ts < threeDaysAgo) return;
 
-          // 圖片抓取
           let img = "";
           const imgTags = (desc + item).matchAll(/src="([^">]+?\.(?:jpg|jpeg|png|webp)[^">]*?)"/gi);
           for (let match of imgTags) {
@@ -62,25 +59,20 @@ export default async function handler(req, res) {
           if (img && img.startsWith('//')) img = 'https:' + img;
           if (sourceName === "遊民星空") { title = s2t(title); desc = s2t(desc); }
 
-          // 計算熱度權重 (模擬觀看率)：標題長度 + 關鍵字密度
-          const hotScore = title.length + (['限時', '免費', '首發', '大作', '爆料'].some(k => title.includes(k)) ? 50 : 0);
+          const hotScore = title.length + (['限時', '免費', '首發', '大作'].some(k => title.includes(k)) ? 50 : 0);
 
           sourceArticles.push({
             title: title.trim(), url: link, image: img, source: sourceName,
-            ts, hotScore,
-            time: pubDate ? pubDate.slice(5, 16) : ""
+            ts, hotScore, time: pubDate ? pubDate.slice(5, 16) : ""
           });
         });
 
-        // 條件 2：每個網站僅取熱度最高的 6 則
         sourceArticles.sort((a, b) => b.hotScore - a.hotScore);
         allArticles.push(...sourceArticles.slice(0, 6));
       }
     });
 
-    // 最後根據時間排序，確保最頂端是最新資訊
     allArticles.sort((a, b) => b.ts - a.ts);
-
     res.status(200).json({ articles: allArticles });
   } catch (e) { res.status(500).json({ error: e.message }); }
 }
