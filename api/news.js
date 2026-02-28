@@ -16,6 +16,12 @@ export default async function handler(req, res) {
     ]
   };
 
+  // 雜訊關鍵字黑名單 (過濾非遊戲本體內容)
+  const JUNK_WORDS = [
+    '筆電', '顯卡', '處理器', '開箱', '周邊', '滑鼠', '鍵盤', '螢幕', '電競椅', 
+    '股價', '營收', '併購', '法說會', '聯名', '快閃店', '一番賞', '公仔', '模型'
+  ];
+
   const s2t = (s) => {
     const d = { '游':'遊','戏':'戲','电':'電','竞':'競','发':'發','机':'機','体':'體','后':'後','里':'裡','开':'開','关':'關' };
     return s.replace(/[游戏电竞发机体后里开关]/g, m => d[m] || m);
@@ -37,34 +43,37 @@ export default async function handler(req, res) {
         const html = result.value;
 
         if (source.name === "遊戲基地") {
-          // --- 遊戲基地網頁爬蟲邏輯 ---
-          // 抓取網頁中 <section> 內的文章塊
-          const items = html.split('<li class="NewsList_item').slice(1, 10);
+          const items = html.split('<li class="NewsList_item').slice(1, 15);
           items.forEach(item => {
-            let title = item.match(/<h3[^>]*>(.*?)<\/h3>/)?.[1] || "";
+            let title = (item.match(/<h3[^>]*>(.*?)<\/h3>/)?.[1] || "").replace(/<[^>]*>/g, '').trim();
+            // 過濾雜訊
+            if (JUNK_WORDS.some(word => title.includes(word))) return;
+
             let link = item.match(/href="([^"]+)"/)?.[1];
             let img = item.match(/src="([^"]+)"/)?.[1];
-            
             if (title && link) {
               allArticles.push({
-                title: title.replace(/<[^>]*>/g, '').trim(),
+                title,
                 url: link.startsWith('http') ? link : `https://news.gamebase.com.tw${link}`,
                 image: img || "",
                 source: "遊戲基地",
-                ts: now - (allArticles.length * 1000), // 模擬權重排序
+                ts: now - (allArticles.length * 1000),
                 time: "今日精選"
               });
             }
           });
         } else {
-          // --- 標準 RSS 邏輯 ---
           const items = html.split('<item>').slice(1);
           items.forEach(item => {
-            let title = item.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/)?.[1] || "";
+            let title = (item.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/)?.[1] || "").trim();
+            if (source.name === "遊民星空") title = s2t(title);
+            
+            // 過濾雜訊
+            if (JUNK_WORDS.some(word => title.includes(word))) return;
+
             let link = item.match(/<link>(.*?)<\/link>/)?.[1];
             let pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1];
             let desc = item.match(/<description>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/description>/s)?.[1] || "";
-            
             let img = "";
             const media = item.match(/<(?:media:content|enclosure)[^>]+url="([^">]+)"/i);
             if (media) img = media[1];
@@ -73,13 +82,8 @@ export default async function handler(req, res) {
               if (imgTags) img = imgTags[1];
             }
 
-            if (source.name === "遊民星空") title = s2t(title);
-
             allArticles.push({
-              title: title.trim(),
-              url: link.trim(),
-              image: img,
-              source: source.name,
+              title, url: link.trim(), image: img, source: source.name,
               ts: new Date(pubDate).getTime() || now,
               time: pubDate ? pubDate.slice(5, 16) : ""
             });
@@ -88,7 +92,6 @@ export default async function handler(req, res) {
       }
     });
 
-    // 每個來源限制數量並排序
     allArticles.sort((a, b) => b.ts - a.ts);
     res.status(200).json({ articles: allArticles.slice(0, 45) });
   } catch (e) { res.status(500).json({ error: e.message }); }
