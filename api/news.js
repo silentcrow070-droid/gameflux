@@ -9,7 +9,8 @@ export default async function handler(req, res) {
     { name: "Nintendo", url: "https://www.nintendo.com/jp/topics/rss/index.xml", type: "rss", weight: 2 },
     { name: "IGN", url: "https://news.google.com/rss/search?q=site:ign.com+game+-phone+-tablet+-deals&hl=en-US&gl=US&ceid=US:en", type: "gnews", weight: 1 },
     { name: "巴哈姆特", url: "https://news.google.com/rss/search?q=site:gnn.gamer.com.tw&hl=zh-TW&gl=TW&ceid=TW:zh-Hant", type: "gnews", weight: 1 },
-    { name: "4Gamers", url: "https://www.4gamers.com.tw/rss/latest", type: "rss", weight: 1 }
+    { name: "4Gamers", url: "https://www.4gamers.com.tw/rss/latest", type: "rss", weight: 1 },
+    { name: "遊戲基地", url: "https://news.gamebase.com.tw/", type: "html", weight: 1 }
   ];
 
   try {
@@ -22,32 +23,47 @@ export default async function handler(req, res) {
     results.forEach((result, i) => {
       if (result.status === 'fulfilled') {
         const source = allSources[i];
-        const rawItems = result.value.split('<item>').slice(1);
         
-        rawItems.forEach(item => {
-          let title = (item.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/)?.[1] || "").trim();
-          let link = (item.match(/<link>(.*?)<\/link>/)?.[1] || "").trim();
-          let desc = item.match(/<description>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/description>/s)?.[1] || "";
-          let content = item.match(/<content:encoded>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/content:encoded>/s)?.[1] || "";
-          
-          if (source.type === "gnews") title = title.split(' - ')[0];
-
-          // 挖掘 YouTube ID
-          const fullText = desc + content;
-          let videoId = "";
-          const ytMatch = fullText.match(/(?:youtube\.com\/(?:embed\/|watch\?v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-          if (ytMatch) videoId = ytMatch[1];
-
-          finalArticles.push({
-            title, url: link, videoId, source: source.name,
-            ts: new Date(item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1]).getTime() || Date.now(),
-            weight: source.weight
+        if (source.type === "html") {
+          const rawItems = result.value.split('<li class="NewsList_item').slice(1, 10);
+          rawItems.forEach(item => {
+            let title = (item.match(/<h3[^>]*>(.*?)<\/h3>/)?.[1] || "").replace(/<[^>]*>/g, '').trim();
+            finalArticles.push({
+              title, url: item.match(/href="([^"]+)"/)?.[1],
+              image: item.match(/src="([^"]+)"/)?.[1] || "",
+              videoId: "", source: source.name, ts: Date.now(), weight: source.weight
+            });
           });
-        });
+        } else {
+          const rawItems = result.value.split('<item>').slice(1);
+          rawItems.forEach(item => {
+            let title = (item.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/)?.[1] || "").trim();
+            let link = (item.match(/<link>(.*?)<\/link>/)?.[1] || "").trim();
+            let desc = item.match(/<description>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/description>/s)?.[1] || "";
+            let content = item.match(/<content:encoded>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/content:encoded>/s)?.[1] || "";
+            if (source.type === "gnews") title = title.split(' - ')[0];
+
+            // 1. 挖掘影片
+            const fullText = desc + content;
+            let videoId = (fullText.match(/(?:youtube\.com\/(?:embed\/|watch\?v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/) || [])[1] || "";
+
+            // 2. 挖掘圖片
+            let img = (item.match(/<(?:media:content|enclosure)[^>]+url="([^">]+)"/i) || 
+                      fullText.match(/<img[^>]+src="([^">]+?)"/i) || [])[1] || "";
+            
+            if (source.name === "Nintendo" && img.startsWith('/')) img = "https://www.nintendo.com" + img;
+
+            finalArticles.push({
+              title, url: link, videoId, image: img, source: source.name,
+              ts: new Date(item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1]).getTime() || Date.now(),
+              weight: source.weight
+            });
+          });
+        }
       }
     });
 
     finalArticles.sort((a, b) => b.weight - a.weight || b.ts - a.ts);
-    res.status(200).json({ articles: finalArticles.slice(0, 30) });
+    res.status(200).json({ articles: finalArticles.slice(0, 35) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 }
