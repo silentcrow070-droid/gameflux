@@ -1,91 +1,88 @@
 export default async function handler(req, res) {
+  // 設置 CORS 與快取
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
 
-  const { region } = req.query;
-
-  const sources = {
-    tw: [
-      { name: "遊戲基地", url: "https://news.gamebase.com.tw/", type: "html" },
-      { name: "4Gamers", url: "https://www.4gamers.com.tw/rss/latest", type: "rss" },
-      { name: "UDN遊戲", url: "https://game.udn.com/rss/news/2003/2004", type: "rss" }
-    ],
-    global: [
-      { name: "IGN", url: "https://feeds.feedburner.com/ign/all", type: "rss" },
-      { name: "GameSpot", url: "https://www.gamespot.com/feeds/game-news/", type: "rss" },
-      { name: "Kotaku", url: "https://kotaku.com/rss", type: "rss" }
-    ]
-  };
-
-  // 強化黑名單：徹底過濾 3C 硬體與促銷
-  const JUNK_KEYWORDS = [
-    '筆電', '顯卡', '處理器', 'CPU', 'GPU', 'RTX', 'Laptop', '螢幕', 'Monitor',
-    '滑鼠', '鍵盤', '電競椅', '周邊', '開箱', 'Deals', 'Coupons', 'Discount',
-    'Air Duster', 'Soundbar', 'Dell', 'Alienware', 'Sonos', 'Sale', 'Tech'
+  const allSources = [
+    // 1. 官方平台 (原生 RSS)
+    { name: "PlayStation", url: "https://blog.playstation.com/feed/", type: "rss" },
+    { name: "Xbox Wire", url: "https://news.xbox.com/en-us/feed/", type: "rss" },
+    { name: "Steam News", url: "https://store.steampowered.com/feeds/news.xml", type: "rss" },
+    { name: "Nintendo", url: "https://www.nintendo.com/jp/topics/rss/index.xml", type: "rss" },
+    // 2. 國際權威 (原生 RSS)
+    { name: "IGN", url: "https://feeds.feedburner.com/ign/all", type: "rss" },
+    { name: "GameSpot", url: "https://www.gamespot.com/feeds/game-news/", type: "rss" },
+    // 3. 台灣媒體 (混合模式)
+    { name: "4Gamers", url: "https://www.4gamers.com.tw/rss/latest", type: "rss" }, 
+    { name: "巴哈姆特", url: "https://news.google.com/rss/search?q=site:gnn.gamer.com.tw&hl=zh-TW&gl=TW&ceid=TW:zh-Hant", type: "gnews" }, // 唯獨此項用 GNews
+    { name: "遊戲基地", url: "https://news.gamebase.com.tw/", type: "html" }
   ];
 
-  const JUNK_PATHS = ['/tech/', '/deals/', '/shopping/', '/gift-guide/'];
-
-  const s2t = (s) => {
-    const d = { '游':'遊','戏':'戲','电':'電','竞':'競','发':'發','机':'機','体':'體','后':'後','里':'裡','开':'開','关':'關' };
-    return s.replace(/[游戏电竞发机体后里开关]/g, m => d[m] || m);
-  };
-
-  let selected = region === 'tw' ? sources.tw : (region === 'global' ? sources.global : [...sources.tw, ...sources.global]);
+  // 雜訊關鍵字過濾 (確保純淨遊戲資訊)
+  const JUNK = ['筆電', '顯卡', 'RTX', 'CPU', 'Deals', 'Sale', '開箱', '電競椅', '電競桌'];
 
   try {
-    const results = await Promise.allSettled(selected.map(s => 
-      fetch(s.url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' } }).then(r => r.text())
+    const results = await Promise.allSettled(allSources.map(s => 
+      fetch(s.url, { 
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }, 
+        signal: AbortSignal.timeout(12000) 
+      }).then(r => r.text())
     ));
 
-    let allArticles = [];
-    const now = Date.now();
+    let finalArticles = [];
 
     results.forEach((result, i) => {
       if (result.status === 'fulfilled') {
-        const source = selected[i];
-        const html = result.value;
-        let sourceCount = 0;
+        const source = allSources[i];
+        let items = [];
 
         if (source.type === "html") {
-          // 遊戲基地爬蟲邏輯
-          const items = html.split('<li class="NewsList_item').slice(1, 15);
-          items.forEach(item => {
-            if (sourceCount >= 8) return;
+          // 遊戲基地：HTML 爬蟲邏輯
+          const rawItems = result.value.split('<li class="NewsList_item').slice(1, 15);
+          rawItems.forEach(item => {
             let title = (item.match(/<h3[^>]*>(.*?)<\/h3>/)?.[1] || "").replace(/<[^>]*>/g, '').trim();
-            let link = item.match(/href="([^"]+)"/)?.[1] || "";
-            if (JUNK_KEYWORDS.some(k => title.includes(k))) return;
-            allArticles.push({
-              title, url: link.startsWith('http') ? link : `https://news.gamebase.com.tw${link}`,
+            if (JUNK.some(k => title.includes(k))) return;
+            items.push({
+              title, 
+              url: item.match(/href="([^"]+)"/)?.[1],
               image: item.match(/src="([^"]+)"/)?.[1] || "",
-              source: source.name, ts: now - (allArticles.length * 1000), time: "今日精選"
+              source: source.name, 
+              ts: Date.now()
             });
-            sourceCount++;
           });
         } else {
-          // RSS 邏輯 (IGN, 4Gamers, GameSpot, Kotaku)
-          const items = html.split('<item>').slice(1);
-          items.forEach(item => {
-            if (sourceCount >= 8) return;
+          // RSS 與 GNews 共通 XML 解析
+          const rawItems = result.value.split('<item>').slice(1);
+          rawItems.forEach(item => {
             let title = (item.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/)?.[1] || "").trim();
             let link = (item.match(/<link>(.*?)<\/link>/)?.[1] || "").trim();
             
-            // 雜訊過濾
-            if (JUNK_KEYWORDS.some(k => title.toUpperCase().includes(k.toUpperCase()))) return;
-            if (JUNK_PATHS.some(p => link.toLowerCase().includes(p))) return;
+            if (source.type === "gnews") title = title.split(' - ')[0]; // GNews 標題淨化
+            if (JUNK.some(k => title.toUpperCase().includes(k.toUpperCase()))) return;
 
-            let pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1];
             let desc = item.match(/<description>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/description>/s)?.[1] || "";
-            let img = (item.match(/<(?:media:content|enclosure)[^>]+url="([^">]+)"/i) || (desc + item).match(/src="([^">]+?\.(?:jpg|jpeg|png|webp)[^">]*?)"/i))?.[1] || "";
+            let img = (item.match(/<(?:media:content|enclosure)[^>]+url="([^">]+)"/i) || 
+                      (desc + item).match(/src="([^">]+?\.(?:jpg|jpeg|png|webp)[^">]*?)"/i))?.[1] || "";
 
-            allArticles.push({ title, url: link, image: img, source: source.name, ts: new Date(pubDate).getTime() || now, time: pubDate ? pubDate.slice(5, 16) : "" });
-            sourceCount++;
+            items.push({ 
+              title, 
+              url: link, 
+              image: img, 
+              source: source.name,
+              ts: new Date(item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1]).getTime() || Date.now() 
+            });
           });
         }
+        // 強制每站只取前 5 則
+        finalArticles.push(...items.slice(0, 5));
       }
     });
 
-    allArticles.sort((a, b) => b.ts - a.ts);
-    res.status(200).json({ articles: allArticles });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+    // 依時間戳排序，混合顯示
+    finalArticles.sort((a, b) => b.ts - a.ts);
+    res.status(200).json({ articles: finalArticles });
+
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 }
