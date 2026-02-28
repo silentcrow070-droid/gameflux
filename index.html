@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>遊戲人間 | 權威影音聚合</title>
+<title>遊戲人間 | 權威媒體聚合</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
   :root { --tiffany: #81D8D0; --bg: #f4f7f6; --text: #1a1a1a; }
@@ -13,28 +13,33 @@
   
   nav { background: #fff; padding: 12px 0; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
   .nav-flex { display: flex; justify-content: space-between; align-items: center; }
-  .logo-main { font-size: 1.6rem; font-weight: 900; letter-spacing: -1px; text-decoration: none; color: #333; }
+  .logo-main { font-size: 1.6rem; font-weight: 900; text-decoration: none; color: #333; }
   .logo-main span { color: var(--tiffany); }
-  .update-timer { font-size: 0.8rem; color: #888; background: #eee; padding: 4px 12px; border-radius: 20px; }
 
-  /* 影片橫向滑動區 */
-  .video-section { padding: 30px 0; overflow-x: auto; display: flex; gap: 20px; scrollbar-width: none; }
+  /* 影片橫向區 */
+  .video-section { padding: 25px 0; overflow-x: auto; display: flex; gap: 20px; scrollbar-width: none; }
   .video-section::-webkit-scrollbar { display: none; }
-  .video-card { min-width: 400px; background: #000; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-  .video-wrapper { width: 100%; aspect-ratio: 16/9; }
+  .video-card { min-width: 380px; background: #000; border-radius: 16px; overflow: hidden; }
+  .video-wrapper { aspect-ratio: 16/9; }
   .video-wrapper iframe { width: 100%; height: 100%; border: none; }
-  .video-info { padding: 15px; color: #fff; }
 
-  /* 文字新聞清單 */
+  /* 新聞列表 */
   .main-feed { background: #fff; border-radius: 24px; padding: 25px; box-shadow: 0 4px 30px rgba(0,0,0,0.04); margin-bottom: 50px; }
-  .news-card { display: grid; grid-template-columns: 180px 1fr; gap: 25px; padding: 18px 0; border-bottom: 1px solid #f0f0f0; text-decoration: none; color: inherit; align-items: center; }
-  .logo-placeholder { aspect-ratio: 16/9; border-radius: 10px; background: #81D8D0; display: flex; align-items: center; justify-content: center; font-weight: 900; color: white; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px; }
-  .news-title { font-size: 1.15rem; font-weight: 700; line-height: 1.4; }
+  .news-card { display: grid; grid-template-columns: 200px 1fr; gap: 25px; padding: 20px 0; border-bottom: 1px solid #f0f0f0; text-decoration: none; color: inherit; align-items: center; }
+  
+  /* 圖片容器：用於切換 圖片/Logo */
+  .media-holder { width: 200px; aspect-ratio: 16/10; border-radius: 12px; overflow: hidden; background: #eee; position: relative; }
+  .media-holder img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .logo-fallback { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; color: #fff; font-weight: 900; font-size: 1.1rem; letter-spacing: 1px; }
+
+  .news-title { font-size: 1.2rem; font-weight: 700; line-height: 1.4; color: #333; }
+  .update-timer { font-size: 0.8rem; color: #888; }
 
   @media (max-width: 768px) {
     .video-card { min-width: 300px; }
-    .news-card { grid-template-columns: 100px 1fr; gap: 15px; }
-    .logo-placeholder { font-size: 0.7rem; }
+    .news-card { grid-template-columns: 120px 1fr; gap: 15px; }
+    .media-holder { width: 120px; }
+    .logo-fallback { font-size: 0.7rem; }
   }
 </style>
 </head>
@@ -49,70 +54,53 @@
 
 <div class="container">
   <section id="videoRow" class="video-section"></section>
-
   <main class="main-feed">
-    <div id="newsGrid" class="loader">同步中...</div>
+    <div id="newsGrid"></div>
   </main>
 </div>
 
 <script>
-let nextRefreshTime = Date.now() + 600000;
-
-// 定義各來源的 Logo 配色或純文字顯示
-const sourceStyles = {
-  'PlayStation': '#003087',
-  'Xbox Wire': '#107c10',
-  'Steam News': '#171a21',
-  'Nintendo': '#e60012',
-  'IGN': '#bf1313',
-  '巴哈姆特': '#00adef',
-  '4Gamers': '#222'
-};
+const sourceColors = { 'PlayStation': '#003087', 'Xbox Wire': '#107c10', 'Steam News': '#171a21', 'Nintendo': '#e60012', 'IGN': '#bf1313', '巴哈姆特': '#00adef', '4Gamers': '#222', '遊戲基地': '#ff6600' };
 
 async function fetchData() {
-  try {
-    const res = await fetch('/api/news');
-    const data = await res.json();
-    const videoRow = document.getElementById('videoRow');
-    const newsGrid = document.getElementById('newsGrid');
+  const res = await fetch('/api/news');
+  const data = await res.json();
+  
+  // 1. 影片區 (有 videoId 的才顯示)
+  document.getElementById('videoRow').innerHTML = data.articles.filter(a => a.videoId).map(a => `
+    <div class="video-card">
+      <div class="video-wrapper"><iframe src="https://www.youtube.com/embed/${a.videoId}" allowfullscreen loading="lazy"></iframe></div>
+      <div style="padding:12px; color:#fff; font-size:0.85rem; font-weight:700;">${a.title}</div>
+    </div>
+  `).join('');
 
-    // 1. 過濾出有影片的 (放在上方滑動區)
-    const videoArticles = data.articles.filter(a => a.videoId);
-    videoRow.innerHTML = videoArticles.map(a => `
-      <div class="video-card">
-        <div class="video-wrapper">
-          <iframe src="https://www.youtube.com/embed/${a.videoId}" allowfullscreen></iframe>
-        </div>
-        <div class="video-info">
-          <div style="color:var(--tiffany); font-size:0.7rem; font-weight:900;">${a.source}</div>
-          <div style="font-size:0.9rem; font-weight:700;">${a.title}</div>
+  // 2. 新聞區
+  document.getElementById('newsGrid').innerHTML = data.articles.map(a => `
+    <a href="${a.url}" target="_blank" class="news-card">
+      <div class="media-holder">
+        ${a.image ? 
+          `<img src="${a.image}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
+          `<div style="display:flex;" class="logo-fallback"></div>` 
+        }
+        <div class="logo-fallback" style="background:${sourceColors[a.source] || '#81D8D0'}; display:${a.image ? 'none' : 'flex'}">
+          ${a.source}
         </div>
       </div>
-    `).join('');
-
-    // 2. 全部清單 (放在下方，沒影片的顯示 Logo)
-    newsGrid.innerHTML = data.articles.map(a => `
-      <a href="${a.url}" target="_blank" class="news-card">
-        ${a.videoId ? 
-          `<div class="logo-placeholder" style="background:#000; font-size:0.8rem;">VIDEO PLAY</div>` : 
-          `<div class="logo-placeholder" style="background:${sourceStyles[a.source] || '#81D8D0'}">${a.source}</div>`
-        }
-        <div>
-          <div style="color:#888; font-size:0.75rem; font-weight:900; margin-bottom:5px;">${a.source}</div>
-          <div class="news-title">${a.title}</div>
-        </div>
-      </a>
-    `).join('');
-  } catch (e) { console.error(e); }
+      <div>
+        <div style="color:var(--tiffany); font-size:0.75rem; font-weight:900; margin-bottom:5px;">${a.source}</div>
+        <div class="news-title">${a.title}</div>
+      </div>
+    </a>
+  `).join('');
 }
 
-function updateCountdown() {
-  const diff = Math.max(0, Math.floor((nextRefreshTime - Date.now()) / 1000));
+let nextRefresh = Date.now() + 600000;
+setInterval(() => {
+  const diff = Math.max(0, Math.floor((nextRefresh - Date.now()) / 1000));
   document.getElementById('nextUpdate').innerText = `自動更新：${Math.floor(diff/60)}:${(diff%60).toString().padStart(2,'0')}`;
-  if (diff <= 0) { nextRefreshTime = Date.now() + 600000; fetchData(); }
-}
+  if(diff <= 0) { nextRefresh = Date.now() + 600000; fetchData(); }
+}, 1000);
 
-setInterval(updateCountdown, 1000);
 fetchData();
 </script>
 </body>
