@@ -8,38 +8,43 @@
 <style>
   :root { --tiffany: #81D8D0; --bg: #f4f7f6; --text: #1a1a1a; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Noto Sans TC', sans-serif; }
+  body { background: var(--bg); color: var(--text); font-family: 'Noto Sans TC', sans-serif; -webkit-font-smoothing: antialiased; }
   .container { width: 95%; max-width: 1200px; margin: 0 auto; }
   
+  /* 導覽列 */
   nav { background: #fff; padding: 12px 0; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
   .nav-flex { display: flex; justify-content: space-between; align-items: center; }
-  .logo-main { font-size: 1.6rem; font-weight: 900; text-decoration: none; color: #333; }
+  .logo-main { font-size: 1.6rem; font-weight: 900; text-decoration: none; color: #333; letter-spacing: -1px; }
   .logo-main span { color: var(--tiffany); }
+  .update-timer { font-size: 0.8rem; color: #888; font-weight: 500; background: #f0f0f0; padding: 4px 12px; border-radius: 20px; }
 
-  /* 影片橫向區 */
+  /* 影片滑動區 */
   .video-section { padding: 25px 0; overflow-x: auto; display: flex; gap: 20px; scrollbar-width: none; }
   .video-section::-webkit-scrollbar { display: none; }
-  .video-card { min-width: 380px; background: #000; border-radius: 16px; overflow: hidden; }
-  .video-wrapper { aspect-ratio: 16/9; }
+  .video-card { min-width: 380px; background: #000; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+  .video-wrapper { aspect-ratio: 16/9; width: 100%; }
   .video-wrapper iframe { width: 100%; height: 100%; border: none; }
 
   /* 新聞列表 */
-  .main-feed { background: #fff; border-radius: 24px; padding: 25px; box-shadow: 0 4px 30px rgba(0,0,0,0.04); margin-bottom: 50px; }
-  .news-card { display: grid; grid-template-columns: 200px 1fr; gap: 25px; padding: 20px 0; border-bottom: 1px solid #f0f0f0; text-decoration: none; color: inherit; align-items: center; }
+  .main-feed { background: #fff; border-radius: 24px; padding: 30px; box-shadow: 0 4px 30px rgba(0,0,0,0.04); margin-bottom: 50px; }
+  .news-card { display: grid; grid-template-columns: 200px 1fr; gap: 25px; padding: 22px 0; border-bottom: 1px solid #f0f0f0; text-decoration: none; color: inherit; align-items: center; transition: 0.3s; }
+  .news-card:hover { transform: translateX(8px); }
+  .news-card:last-child { border-bottom: none; }
   
-  /* 圖片容器：用於切換 圖片/Logo */
-  .media-holder { width: 200px; aspect-ratio: 16/10; border-radius: 12px; overflow: hidden; background: #eee; position: relative; }
+  /* 媒體容器：圖/Logo 二合一 */
+  .media-holder { width: 200px; aspect-ratio: 16/10; border-radius: 12px; overflow: hidden; background: #eee; position: relative; flex-shrink: 0; }
   .media-holder img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .logo-fallback { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; color: #fff; font-weight: 900; font-size: 1.1rem; letter-spacing: 1px; }
+  .logo-fallback { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; color: #fff; font-weight: 900; font-size: 1.1rem; text-transform: uppercase; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
-  .news-title { font-size: 1.2rem; font-weight: 700; line-height: 1.4; color: #333; }
-  .update-timer { font-size: 0.8rem; color: #888; }
+  .news-title { font-size: 1.25rem; font-weight: 700; line-height: 1.45; color: #2c3e50; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .source-tag { color: var(--tiffany); font-weight: 900; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 6px; display: block; }
 
   @media (max-width: 768px) {
-    .video-card { min-width: 300px; }
-    .news-card { grid-template-columns: 120px 1fr; gap: 15px; }
+    .video-card { min-width: 280px; }
+    .news-card { grid-template-columns: 120px 1fr; gap: 15px; padding: 15px 0; }
     .media-holder { width: 120px; }
     .logo-fallback { font-size: 0.7rem; }
+    .news-title { font-size: 1rem; }
   }
 </style>
 </head>
@@ -47,57 +52,76 @@
 
 <nav>
   <div class="container nav-flex">
-    <a href="#" class="logo-main">遊戲<span>人間</span></a>
-    <div id="nextUpdate" class="update-timer">更新中...</div>
+    <a href="/" class="logo-main">遊戲<span>人間</span></a>
+    <div id="nextUpdate" class="update-timer">數據同步中...</div>
   </div>
 </nav>
 
 <div class="container">
   <section id="videoRow" class="video-section"></section>
+
   <main class="main-feed">
-    <div id="newsGrid"></div>
+    <div id="newsGrid" style="text-align:center; padding:50px; color:#aaa;">正在連接全球遊戲數據中心...</div>
   </main>
 </div>
 
 <script>
-const sourceColors = { 'PlayStation': '#003087', 'Xbox Wire': '#107c10', 'Steam News': '#171a21', 'Nintendo': '#e60012', 'IGN': '#bf1313', '巴哈姆特': '#00adef', '4Gamers': '#222', '遊戲基地': '#ff6600' };
+const sourceColors = { 
+  'PlayStation': '#003087', 'Xbox Wire': '#107c10', 'Steam News': '#171a21', 
+  'Nintendo': '#e60012', 'IGN': '#bf1313', '巴哈姆特': '#00adef', 
+  '4Gamers': '#222', '遊戲基地': '#ff6600' 
+};
 
 async function fetchData() {
-  const res = await fetch('/api/news');
-  const data = await res.json();
-  
-  // 1. 影片區 (有 videoId 的才顯示)
-  document.getElementById('videoRow').innerHTML = data.articles.filter(a => a.videoId).map(a => `
-    <div class="video-card">
-      <div class="video-wrapper"><iframe src="https://www.youtube.com/embed/${a.videoId}" allowfullscreen loading="lazy"></iframe></div>
-      <div style="padding:12px; color:#fff; font-size:0.85rem; font-weight:700;">${a.title}</div>
-    </div>
-  `).join('');
+  try {
+    const res = await fetch('/api/news');
+    const data = await res.json();
+    if (!data.articles) return;
 
-  // 2. 新聞區
-  document.getElementById('newsGrid').innerHTML = data.articles.map(a => `
-    <a href="${a.url}" target="_blank" class="news-card">
-      <div class="media-holder">
-        ${a.image ? 
-          `<img src="${a.image}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
-          `<div style="display:flex;" class="logo-fallback"></div>` 
-        }
-        <div class="logo-fallback" style="background:${sourceColors[a.source] || '#81D8D0'}; display:${a.image ? 'none' : 'flex'}">
-          ${a.source}
+    // 1. 渲染頂部影片區 (Video-First)
+    const videos = data.articles.filter(a => a.videoId);
+    document.getElementById('videoRow').innerHTML = videos.map(a => `
+      <div class="video-card">
+        <div class="video-wrapper">
+          <iframe src="https://www.youtube.com/embed/${a.videoId}" allowfullscreen loading="lazy"></iframe>
         </div>
+        <div style="padding:15px; color:#fff; font-size:0.85rem; font-weight:700;">${a.title}</div>
       </div>
-      <div>
-        <div style="color:var(--tiffany); font-size:0.75rem; font-weight:900; margin-bottom:5px;">${a.source}</div>
-        <div class="news-title">${a.title}</div>
-      </div>
-    </a>
-  `).join('');
+    `).join('');
+
+    // 2. 渲染主情報區 (包含破防與保底邏輯)
+    document.getElementById('newsGrid').innerHTML = data.articles.map(a => `
+      <a href="${a.url}" target="_blank" class="news-card">
+        <div class="media-holder">
+          ${a.image ? 
+            `<img src="${a.image}" 
+                  referrerpolicy="no-referrer" 
+                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
+            `<div style="display:flex;" class="logo-fallback"></div>` 
+          }
+          <div class="logo-fallback" style="background:${sourceColors[a.source] || '#81D8D0'}; display:${a.image ? 'none' : 'flex'}">
+            ${a.source}
+          </div>
+        </div>
+        <div>
+          <span class="source-tag">${a.source}</span>
+          <div class="news-title">${a.title}</div>
+        </div>
+      </a>
+    `).join('');
+
+  } catch (e) {
+    document.getElementById('newsGrid').innerHTML = "伺服器暫時離線，請檢查 Vercel 狀態。";
+  }
 }
 
+// 倒數計時邏輯 (10分鐘)
 let nextRefresh = Date.now() + 600000;
 setInterval(() => {
   const diff = Math.max(0, Math.floor((nextRefresh - Date.now()) / 1000));
-  document.getElementById('nextUpdate').innerText = `自動更新：${Math.floor(diff/60)}:${(diff%60).toString().padStart(2,'0')}`;
+  const mins = Math.floor(diff / 60);
+  const secs = diff % 60;
+  document.getElementById('nextUpdate').innerText = `自動更新：${mins}:${secs < 10 ? '0' : ''}${secs}`;
   if(diff <= 0) { nextRefresh = Date.now() + 600000; fetchData(); }
 }, 1000);
 
