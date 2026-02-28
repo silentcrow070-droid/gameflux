@@ -10,7 +10,12 @@ export default async function handler(req, res) {
     { name: "巴哈姆特", url: "https://news.google.com/rss/search?q=site:gnn.gamer.com.tw&hl=zh-TW&gl=TW&ceid=TW:zh-Hant", type: "gnews", weight: 1 }
   ];
 
-  const JUNK = ['SAMSUNG', 'GALAXY', 'IPHONE', 'SONOS', 'SOUNDBAR', 'DEALS', 'MOBILE', 'T-MOBILE', 'OFFER', 'SALE'];
+  // --- 暴力過濾清單：封殺所有硬體與促銷雜訊 ---
+  const JUNK = [
+    'SAMSUNG', 'GALAXY', 'IPHONE', 'SONOS', 'SOUNDBAR', 'DEALS', 'OFFER', 'SALE', 
+    'PC', 'RTX', 'GPU', 'ALIENWARE', 'MONITOR', 'LAPTOP', 'DUSTER', 'KEYBOARD', 
+    'MOUSE', 'HEADSET', 'PRICE', 'SAVE', 'DISCOUNT', 'LOWEST', 'DEAL', 'HARDWARE'
+  ];
 
   try {
     const results = await Promise.allSettled(allSources.map(s => 
@@ -25,22 +30,19 @@ export default async function handler(req, res) {
         
         rawItems.forEach(item => {
           let title = (item.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/)?.[1] || "").trim();
+          
+          // 執行嚴格過濾邏輯
           if (JUNK.some(k => title.toUpperCase().includes(k))) return;
 
           let link = (item.match(/<link>(.*?)<\/link>/)?.[1] || "").trim();
-          
-          // --- 圖片深度抓取與淨化 ---
           let img = (item.match(/<media:content[^>]+url="([^">]+)"/i) || 
                      item.match(/<enclosure[^>]+url="([^">]+)"/i) ||
                      item.match(/<img[^>]+src="([^">]+?)"/i) || [])[1] || "";
 
+          // IGN 圖片路徑優化
           if (source.name === "IGN" && img) {
-            // 破除 IGN 縮圖限制，還原為原始高清路徑
-            img = img.split('?')[0]; 
-            img = img.replace('/thumb/', '/article/'); 
+            img = img.split('?')[0].replace('/thumb/', '/article/'); 
           }
-          
-          if (source.name === "巴哈姆特" && img.includes('img.news.google.com')) img = "";
 
           finalArticles.push({
             title, url: link, image: img, source: source.name,
@@ -51,8 +53,7 @@ export default async function handler(req, res) {
       }
     });
 
-    // 先依權重排序（官媒優先），再依時間排序
     finalArticles.sort((a, b) => b.weight - a.weight || b.ts - a.ts);
-    res.status(200).json({ articles: finalArticles.slice(0, 36) });
+    res.status(200).json({ articles: finalArticles.slice(0, 40) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 }
