@@ -8,24 +8,22 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
   :root { 
-    --tiffany: #81D8D0; /* Tiffany Blue */
+    --tiffany: #81D8D0; 
     --bg: #f8f9fa; 
     --text: #333; 
-    --nav-bg: #81D8D0; 
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Noto Sans TC', sans-serif; }
 
-  /* 導覽列與配色修改 */
-  nav { background: var(--nav-bg); padding: 12px 5%; display: flex; gap: 25px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+  nav { background: var(--tiffany); padding: 12px 5%; display: flex; gap: 25px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
   nav a { color: white; text-decoration: none; font-weight: bold; font-size: 0.95rem; }
 
   header { background: #fff; padding: 25px 5%; border-bottom: 1px solid #eee; }
   .logo { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; }
   .logo span { color: var(--tiffany); }
 
-  /* 看板區鎖定 3 則 */
   .hero-container { padding: 20px 5%; max-width: 1400px; margin: 0 auto; }
+  /* 看板區鎖定 3 則新聞 */
   .hero-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
   .hero-item { position: relative; aspect-ratio: 16/9; background: #333; border-radius: 15px; overflow: hidden; text-decoration: none; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
   .hero-item img { width: 100%; height: 100%; object-fit: cover; opacity: 0.85; transition: 0.5s; }
@@ -39,7 +37,7 @@
   .side-nav a { display: block; padding: 12px; color: #555; text-decoration: none; font-weight: bold; border-radius: 10px; transition: 0.3s; }
   .side-nav a:hover { background: #f0fdfc; color: var(--tiffany); }
 
-  .main-feed { background: #fff; border-radius: 15px; padding: 30px; min-height: 600px; }
+  .main-feed { background: #fff; border-radius: 15px; padding: 30px; min-height: 400px; }
   .feed-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; border-bottom: 3px solid var(--tiffany); padding-bottom: 15px; }
   
   .filter-btn { padding: 8px 20px; border-radius: 20px; border: 1px solid #ddd; background: #fff; cursor: pointer; font-weight: bold; transition: 0.3s; }
@@ -88,9 +86,9 @@
 </div>
 
 <script>
-let region = 'all';
+let currentRegion = 'all';
 async function updateData(r) {
-  region = r;
+  currentRegion = r;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.id === `btn-${r}`));
   fetchData();
 }
@@ -99,10 +97,10 @@ async function fetchData() {
   const grid = document.getElementById('newsGrid');
   const hero = document.getElementById('heroGrid');
   try {
-    const res = await fetch(`/api/news?region=${region}`);
+    const res = await fetch(`/api/news?region=${currentRegion}`);
     const data = await res.json();
     if (data.articles) {
-      // 鎖定大看板 3 則
+      // 填充大看板 (前3則)
       hero.innerHTML = data.articles.slice(0, 3).map(a => `
         <a href="${a.url}" target="_blank" class="hero-item">
           <span class="hero-tag">${a.source}</span>
@@ -111,9 +109,10 @@ async function fetchData() {
         </a>
       `).join('');
 
+      // 填充列表 (剩下的)
       grid.innerHTML = data.articles.slice(3).map(a => `
         <a href="${a.url}" target="_blank" class="news-card">
-          <div class="news-thumb"><img src="${a.image || ''}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x170?text=Game'"></div>
+          <div class="news-thumb"><img src="${a.image || ''}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x170?text=News'"></div>
           <div class="info">
             <div class="news-source">${a.source}</div>
             <div class="news-title">${a.title}</div>
@@ -121,8 +120,10 @@ async function fetchData() {
           </div>
         </a>
       `).join('');
-    } else { throw new Error(); }
-  } catch (err) { grid.innerHTML = `<div style="color:red;padding:20px;">API 額度已用盡，請稍後再試。</div>`; }
+    }
+  } catch (err) {
+    grid.innerHTML = `<div style="color:red;padding:20px;">資料加載失敗。</div>`;
+  }
 }
 fetchData();
 </script>
