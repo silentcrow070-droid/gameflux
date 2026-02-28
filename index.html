@@ -3,44 +3,43 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>遊戲人間 | GAMEFLUX</title>
+<title>遊戲人間 | GAMEFLUX 精華</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
   :root { --tiffany: #81D8D0; --bg: #f8f9fa; --text: #1a1a1a; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Noto Sans TC', sans-serif; }
+  body { background: var(--bg); color: var(--text); font-family: 'Noto Sans TC', sans-serif; overflow-x: hidden; }
   .container { width: 95%; max-width: 1750px; margin: 0 auto; }
   
   nav { background: var(--tiffany); padding: 15px 0; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
   nav .container { display: flex; gap: 30px; }
-  nav a { color: white; text-decoration: none; font-weight: 700; cursor: pointer; }
+  nav a { color: white; text-decoration: none; font-weight: 700; cursor: pointer; font-size: 0.95rem; }
 
   header { padding: 40px 0 20px; }
-  .logo { font-size: 2.5rem; font-weight: 900; }
+  .logo { font-size: 2.8rem; font-weight: 900; letter-spacing: -1.5px; }
   .logo span { color: var(--tiffany); }
 
   .hero-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
-  .hero-item { position: relative; aspect-ratio: 16/9; background: #ddd; border-radius: 12px; overflow: hidden; text-decoration: none; display: block; }
-  .hero-item img { width: 100%; height: 100%; object-fit: cover; }
-  .hero-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 20px; color: white; }
+  .hero-item { position: relative; aspect-ratio: 16/9; background: #ddd; border-radius: 14px; overflow: hidden; text-decoration: none; display: block; }
+  .hero-item img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
+  .hero-item:hover img { transform: scale(1.05); }
+  .hero-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.85)); padding: 20px; color: white; }
 
   .content-wrapper { display: grid; grid-template-columns: 240px 1fr; gap: 40px; }
-  
-  /* 左側功能選單樣式 */
-  .side-nav a { display: block; padding: 16px; color: #666; text-decoration: none; font-weight: 700; border-radius: 10px; margin-bottom: 8px; cursor: pointer; }
+  .side-nav a { display: block; padding: 16px; color: #666; text-decoration: none; font-weight: 700; border-radius: 12px; margin-bottom: 8px; cursor: pointer; }
   .side-nav a.active { background: #fff; color: var(--tiffany); box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
 
-  .main-feed { background: #fff; border-radius: 20px; padding: 30px; box-shadow: 0 2px 20px rgba(0,0,0,0.02); }
-  .feed-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 25px; }
+  .main-feed { background: #fff; border-radius: 20px; padding: 35px; min-height: 600px; }
+  .feed-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f5f5f5; padding-bottom: 20px; margin-bottom: 30px; }
   
-  .filter-btn { padding: 8px 20px; border-radius: 20px; border: 1px solid #ddd; background: #fff; cursor: pointer; font-weight: 700; }
+  .filter-btn { padding: 8px 20px; border-radius: 20px; border: 1px solid #ddd; background: #fff; cursor: pointer; font-weight: 700; font-size: 0.85rem; }
   .filter-btn.active { background: var(--tiffany); color: white; border-color: var(--tiffany); }
 
-  .news-card { display: grid; grid-template-columns: 260px 1fr; gap: 25px; padding: 20px 0; border-bottom: 1px solid #f5f5f5; text-decoration: none; color: inherit; align-items: center; }
-  .news-thumb { aspect-ratio: 16/10; border-radius: 10px; overflow: hidden; background: #eee; }
+  .news-card { display: grid; grid-template-columns: 260px 1fr; gap: 30px; padding: 25px 0; border-bottom: 1px solid #f9f9f9; text-decoration: none; color: inherit; align-items: center; }
+  .news-thumb { aspect-ratio: 16/10; border-radius: 12px; overflow: hidden; background: #eee; }
   .news-thumb img { width: 100%; height: 100%; object-fit: cover; }
-  .news-source { color: var(--tiffany); font-weight: 800; font-size: 0.8rem; }
-  .news-title { font-size: 1.2rem; font-weight: 700; margin-top: 5px; }
+  .news-source { color: var(--tiffany); font-weight: 800; font-size: 0.75rem; margin-bottom: 5px; }
+  .news-title { font-size: 1.25rem; font-weight: 700; line-height: 1.4; }
 
   @media (max-width: 1000px) { .hero-grid, .content-wrapper, .news-card { grid-template-columns: 1fr; } .side-nav { display: none; } }
 </style>
@@ -48,11 +47,10 @@
 <body>
 
 <nav><div class="container">
-  <a onclick="updateState('category', 'all')">首頁</a>
-  <a onclick="updateState('category', 'tv')">家用主機</a>
-  <a onclick="updateState('category', 'pc')">電腦遊戲</a>
+  <a onclick="update('category', 'all')">首頁</a>
+  <a onclick="update('category', 'tv')">家用主機</a>
+  <a onclick="update('category', 'pc')">電腦遊戲</a>
   <a onclick="updateState('category', 'mobile')">行動遊戲</a>
-  <a onclick="updateState('category', 'esports')">電競賽事</a>
 </div></nav>
 
 <div class="container">
@@ -61,21 +59,21 @@
 
   <div class="content-wrapper">
     <aside class="side-nav">
-      <a id="s-latest" class="active" onclick="updateState('sort', 'latest')">🏠 最新情報</a>
-      <a id="s-hot" onclick="updateState('sort', 'hot')">🔥 熱門討論</a>
-      <a id="s-gossip" onclick="updateState('sort', 'gossip')">🗣️ 傳聞爆料</a>
+      <a id="s-latest" class="active" onclick="update('sort', 'latest')">🏠 最新情報</a>
+      <a id="s-hot" onclick="update('sort', 'hot')">🔥 精選熱門</a>
+      <a id="s-gossip" onclick="update('sort', 'gossip')">🗣️ 傳聞爆料</a>
     </aside>
 
     <main class="main-feed">
       <div class="feed-header">
-        <h2 style="font-weight:900;">綜合新聞</h2>
+        <h2 style="font-weight:900;">近三日精選 (每站 6 則)</h2>
         <div class="filter-group">
-          <button class="filter-btn active" id="b-all" onclick="updateState('region', 'all')">全部</button>
-          <button class="filter-btn" id="b-tw" onclick="updateState('region', 'tw')">國內</button>
-          <button class="filter-btn" id="b-global" onclick="updateState('region', 'global')">國外</button>
+          <button class="filter-btn active" id="b-all" onclick="update('region', 'all')">全部</button>
+          <button class="filter-btn" id="b-tw" onclick="update('region', 'tw')">國內</button>
+          <button class="filter-btn" id="b-global" onclick="update('region', 'global')">國外</button>
         </div>
       </div>
-      <div id="newsGrid">讀取中...</div>
+      <div id="newsGrid">同步雲端資訊中...</div>
     </main>
   </div>
 </div>
@@ -83,51 +81,45 @@
 <script>
 let state = { region: 'all', category: 'all', sort: 'latest' };
 
-async function updateState(key, value) {
-  state[key] = value;
-  
-  // 更新按鈕外觀
-  if (key === 'region' || key === 'category') {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.id === `b-${value}`));
-  }
-  if (key === 'sort') {
-    document.querySelectorAll('.side-nav a').forEach(a => a.classList.toggle('active', a.id === `s-${value}`));
-  }
-  
-  fetchData(); // 重新抓取資料
+async function update(k, v) {
+  state[k] = v;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.id === `b-${v}`));
+  document.querySelectorAll('.side-nav a').forEach(a => a.classList.toggle('active', a.id === `s-${v}`));
+  fetchData();
 }
 
 async function fetchData() {
   const grid = document.getElementById('newsGrid');
   const hero = document.getElementById('heroGrid');
-  const query = new URLSearchParams(state).toString();
+  const q = new URLSearchParams(state).toString();
   
   try {
-    const res = await fetch(`/api/news?${query}`);
+    const res = await fetch(`/api/news?${q}`);
     const data = await res.json();
     
     if (data.articles && data.articles.length > 0) {
+      // 頂部大圖
       hero.innerHTML = data.articles.slice(0, 3).map(a => `
         <a href="${a.url}" target="_blank" class="hero-item">
-          ${a.image ? `<img src="${a.image}" onerror="this.style.display='none';">` : ''}
+          <img src="${a.image || ''}" onerror="this.style.display='none';this.parentElement.style.background='var(--tiffany)';" loading="lazy">
           <div class="hero-overlay"><div style="font-weight:700;">${a.title}</div></div>
         </a>`).join('');
 
+      // 新聞列表
       grid.innerHTML = data.articles.slice(3).map(a => `
         <a href="${a.url}" target="_blank" class="news-card">
           <div class="news-thumb">
-            ${a.image ? `<img src="${a.image}" onerror="this.parentElement.style.background='#eee';this.style.display='none';">` : ''}
+            <img src="${a.image || ''}" onerror="this.parentElement.style.background='#eee';this.style.display='none';" loading="lazy">
           </div>
           <div>
             <div class="news-source">${a.source}</div>
             <div class="news-title">${a.title}</div>
-            <div style="color:#999;font-size:0.8rem;margin-top:5px;">${a.time}</div>
+            <div style="color:#999;font-size:0.85rem;margin-top:10px;">${a.time}</div>
           </div>
         </a>`).join('');
-    } else { grid.innerHTML = "暫無新聞。"; }
-  } catch (e) { grid.innerHTML = "讀取失敗，請確認 API 是否正常運作。"; }
+    } else { grid.innerHTML = "目前沒有符合條件的新聞。"; }
+  } catch (e) { grid.innerHTML = "讀取失敗。"; }
 }
-
 fetchData();
 </script>
 </body>
