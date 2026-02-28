@@ -6,64 +6,60 @@
 <title>遊戲人間 | 頂尖遊戲情報聚合</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
-  :root { --bg: #f4f4f4; --card-bg: #ffffff; --text: #333333; --accent: #20b2aa; --border: #dddddd; }
+  :root { --bg: #f4f4f4; --card-bg: #ffffff; --text: #333333; --accent: #20b2aa; --border: #dddddd; --nav-bg: #00a1b9; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Noto Sans TC', sans-serif; }
 
-  /* 頂部導覽 */
-  nav { background: #00a1b9; padding: 8px 5%; display: flex; gap: 20px; overflow-x: auto; }
-  nav a { color: white; text-decoration: none; font-size: 0.9rem; font-weight: bold; white-space: nowrap; }
+  nav { background: var(--nav-bg); padding: 10px 5%; display: flex; gap: 25px; overflow-x: auto; position: sticky; top: 0; z-index: 1000; }
+  nav a { color: white; text-decoration: none; font-size: 1rem; font-weight: bold; white-space: nowrap; }
 
-  /* Logo 區域 */
-  header { background: #fff; padding: 20px 5%; display: flex; align-items: center; border-bottom: 1px solid var(--border); }
-  .logo { font-size: 2.2rem; font-weight: 900; color: #333; letter-spacing: -1px; }
-  .logo span { color: var(--accent); }
+  header { background: #fff; padding: 25px 5%; border-bottom: 1px solid var(--border); }
+  .logo { font-size: 2.5rem; font-weight: 900; color: #333; letter-spacing: -1.5px; }
+  .logo span { color: var(--nav-bg); }
 
-  /* 大看板區 (Hero Section) */
   .hero-container { padding: 20px 5%; max-width: 1400px; margin: 0 auto; }
   .hero-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
-  .hero-item { position: relative; aspect-ratio: 16/10; background: #ddd; border-radius: 8px; overflow: hidden; text-decoration: none; }
-  .hero-item img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
-  .hero-item:hover img { transform: scale(1.05); }
-  .hero-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 15px; color: white; }
-  .hero-title { font-size: 1rem; font-weight: bold; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .hero-tag { position: absolute; top: 10px; left: 10px; background: var(--accent); color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
+  .hero-item { position: relative; aspect-ratio: 16/10; background: #ddd; border-radius: 12px; overflow: hidden; text-decoration: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  .hero-item img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
+  .hero-item:hover img { transform: scale(1.1); }
+  .hero-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.85)); padding: 20px 15px; color: white; }
+  .hero-title { font-size: 1.1rem; font-weight: bold; line-height: 1.3; }
+  .hero-tag { position: absolute; top: 12px; left: 12px; background: var(--nav-bg); color: white; font-size: 0.75rem; padding: 3px 10px; border-radius: 6px; font-weight: 900; z-index: 2; }
 
-  /* 主要容器佈局 */
-  .content-wrapper { display: grid; grid-template-columns: 200px 1fr 300px; gap: 25px; padding: 20px 5%; max-width: 1400px; margin: 0 auto; }
+  .content-wrapper { display: grid; grid-template-columns: 220px 1fr; gap: 30px; padding: 20px 5%; max-width: 1400px; margin: 0 auto; }
+  .side-nav { background: #fff; border-radius: 12px; padding: 20px; height: fit-content; }
+  .side-nav a { display: flex; align-items: center; gap: 10px; padding: 12px; color: #444; text-decoration: none; font-weight: bold; border-radius: 8px; }
+  .side-nav a:hover { background: #f0f9fa; color: var(--nav-bg); }
 
-  /* 左側：分類欄 */
-  .side-nav { background: #fff; border-radius: 8px; padding: 15px; height: fit-content; }
-  .side-nav a { display: block; padding: 10px; color: #555; text-decoration: none; font-weight: bold; font-size: 0.95rem; border-radius: 5px; }
-  .side-nav a:hover { background: #f0f9fa; color: var(--accent); }
+  .main-feed { background: #fff; border-radius: 12px; padding: 30px; }
+  .feed-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; border-bottom: 3px solid var(--nav-bg); padding-bottom: 10px; }
+  .feed-title { font-size: 1.6rem; font-weight: 900; }
+  
+  /* 分類按鈕 */
+  .filter-btns { display: flex; gap: 10px; }
+  .filter-btn { padding: 6px 15px; border-radius: 20px; border: 1px solid var(--border); background: #f9f9f9; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
+  .filter-btn.active { background: var(--nav-bg); color: white; border-color: var(--nav-bg); }
 
-  /* 中間：新聞列表 */
-  .main-feed { background: #fff; border-radius: 8px; padding: 20px; }
-  .feed-title { font-size: 1.4rem; font-weight: 900; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #eee; }
-  .news-card { display: flex; gap: 15px; padding: 15px 0; border-bottom: 1px solid #f0f0f0; text-decoration: none; color: inherit; }
-  .news-thumb { width: 160px; height: 90px; border-radius: 6px; overflow: hidden; flex-shrink: 0; }
+  .news-card { display: grid; grid-template-columns: 220px 1fr; gap: 25px; padding: 20px 0; border-bottom: 1px solid #f2f2f2; text-decoration: none; color: inherit; }
+  .news-thumb { aspect-ratio: 16/9; border-radius: 8px; overflow: hidden; background: #eee; }
   .news-thumb img { width: 100%; height: 100%; object-fit: cover; }
-  .news-info { flex: 1; }
-  .news-source { font-size: 0.75rem; font-weight: bold; color: var(--accent); margin-bottom: 5px; }
-  .news-title { font-size: 1.1rem; font-weight: bold; line-height: 1.4; margin-bottom: 5px; }
-  .news-time { font-size: 0.8rem; color: #999; }
-
-  /* 右側：側邊欄 (八卦/熱門) */
-  .sidebar-right { }
-  .widget { background: #fff; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
-  .widget-title { font-weight: bold; margin-bottom: 15px; display: flex; justify-content: space-between; }
+  .news-info { display: flex; flex-direction: column; justify-content: center; }
+  .news-source { font-size: 0.85rem; font-weight: 900; color: var(--nav-bg); margin-bottom: 8px; }
+  .news-title { font-size: 1.35rem; font-weight: bold; line-height: 1.4; margin-bottom: 10px; }
+  .news-time { font-size: 0.9rem; color: #888; }
 
   @media (max-width: 1100px) {
     .content-wrapper { grid-template-columns: 1fr; }
-    .side-nav, .sidebar-right { display: none; }
+    .side-nav { display: none; }
     .hero-grid { grid-template-columns: repeat(2, 1fr); }
+    .news-card { grid-template-columns: 140px 1fr; gap: 15px; }
   }
 </style>
 </head>
 <body>
 
 <nav>
-  <a href="#">首頁</a> <a href="#">GNN新聞</a> <a href="#">哈拉區</a> <a href="#">動畫瘋</a> <a href="#">TV</a> <a href="#">PC</a> <a href="#">手機</a>
+  <a href="#">首頁</a> <a href="#">TV</a> <a href="#">PC</a> <a href="#">Mobile Game</a> <a href="#">Esports</a>
 </nav>
 
 <header>
@@ -71,8 +67,7 @@
 </header>
 
 <section class="hero-container">
-  <div id="heroGrid" class="hero-grid">
-    </div>
+  <div id="heroGrid" class="hero-grid"></div>
 </section>
 
 <div class="content-wrapper">
@@ -85,41 +80,47 @@
   </aside>
 
   <main class="main-feed">
-    <h2 class="feed-title">GNN 新聞 ></h2>
+    <div class="feed-header">
+      <div class="feed-title">新聞聚合</div>
+      <div class="filter-btns">
+        <button class="filter-btn active" onclick="fetchData('all', this)">全部</button>
+        <button class="filter-btn" onclick="fetchData('tw', this)">國內新聞</button>
+        <button class="filter-btn" onclick="fetchData('global', this)">國外新聞</button>
+      </div>
+    </div>
     <div id="newsGrid">載入中...</div>
   </main>
-
-  <aside class="sidebar-right">
-    <div class="widget">
-      <div class="widget-title">勇者福利社 <span>></span></div>
-      <div style="background:#eee; height:150px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#999;">廣告/活動區塊</div>
-    </div>
-  </aside>
 </div>
 
 <script>
-async function fetchData() {
+async function fetchData(region = 'all', btn = null) {
+  // 切換按鈕樣式
+  if(btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  const grid = document.getElementById('newsGrid');
   try {
-    const res = await fetch('/api/news');
+    const res = await fetch(`/api/news?region=${region}`);
     const data = await res.json();
     if (data.articles) {
-      // 1. 填充大看板 (前 4 則)
-      const hero = document.getElementById('heroGrid');
-      hero.innerHTML = data.articles.slice(0, 4).map(a => `
-        <a href="${a.url}" target="_blank" class="hero-item">
-          <span class="hero-tag">${a.source}</span>
-          ${a.image ? `<img src="${a.image}">` : ''}
-          <div class="hero-overlay">
-            <div class="hero-title">${a.title}</div>
-          </div>
-        </a>
-      `).join('');
+      // 只有選「全部」時才更新大看板，避免切換時視覺太亂
+      if (region === 'all') {
+        const hero = document.getElementById('heroGrid');
+        hero.innerHTML = data.articles.slice(0, 4).map(a => `
+          <a href="${a.url}" target="_blank" class="hero-item">
+            <span class="hero-tag">${a.source}</span>
+            <img src="${a.image || ''}">
+            <div class="hero-overlay"><div class="hero-title">${a.title}</div></div>
+          </a>
+        `).join('');
+      }
 
-      // 2. 填充主列表 (第 5 則以後)
-      const grid = document.getElementById('newsGrid');
-      grid.innerHTML = data.articles.slice(4).map(a => `
+      // 填充列表
+      grid.innerHTML = (region === 'all' ? data.articles.slice(4) : data.articles).map(a => `
         <a href="${a.url}" target="_blank" class="news-card">
-          <div class="news-thumb">${a.image ? `<img src="${a.image}">` : ''}</div>
+          <div class="news-thumb"><img src="${a.image || ''}" loading="lazy"></div>
           <div class="news-info">
             <div class="news-source">${a.source}</div>
             <div class="news-title">${a.title}</div>
@@ -129,7 +130,7 @@ async function fetchData() {
       `).join('');
     }
   } catch (err) {
-    console.error(err);
+    grid.innerHTML = "讀取失敗。";
   }
 }
 fetchData();
