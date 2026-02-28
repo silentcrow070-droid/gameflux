@@ -16,11 +16,15 @@ export default async function handler(req, res) {
     ]
   };
 
-  // 雜訊關鍵字黑名單 (過濾非遊戲本體內容)
+  // 1. 更嚴格的關鍵字清單
   const JUNK_WORDS = [
     '筆電', '顯卡', '處理器', '開箱', '周邊', '滑鼠', '鍵盤', '螢幕', '電競椅', 
-    '股價', '營收', '併購', '法說會', '聯名', '快閃店', '一番賞', '公仔', '模型'
+    '股價', '營收', '併購', '法說會', '聯名', '快閃店', '一番賞', '公仔', '模型', 
+    'CPU', 'GPU', 'RTX', 'Laptop', 'Deals', 'Coupons', 'Monitor', 'PC Prebuilt'
   ];
+
+  // 2. 針對連結的路徑過濾 (專治 IGN 雜訊)
+  const JUNK_PATHS = ['/tech/', '/deals/', '/articles/2026/02/27/the-best-dell'];
 
   const s2t = (s) => {
     const d = { '游':'遊','戏':'戲','电':'電','竞':'競','发':'發','机':'機','体':'體','后':'後','里':'裡','开':'開','关':'關' };
@@ -46,10 +50,12 @@ export default async function handler(req, res) {
           const items = html.split('<li class="NewsList_item').slice(1, 15);
           items.forEach(item => {
             let title = (item.match(/<h3[^>]*>(.*?)<\/h3>/)?.[1] || "").replace(/<[^>]*>/g, '').trim();
-            // 過濾雜訊
+            let link = item.match(/href="([^"]+)"/)?.[1] || "";
+            
+            // 過濾邏輯
             if (JUNK_WORDS.some(word => title.includes(word))) return;
+            if (JUNK_PATHS.some(path => link.includes(path))) return;
 
-            let link = item.match(/href="([^"]+)"/)?.[1];
             let img = item.match(/src="([^"]+)"/)?.[1];
             if (title && link) {
               allArticles.push({
@@ -66,12 +72,15 @@ export default async function handler(req, res) {
           const items = html.split('<item>').slice(1);
           items.forEach(item => {
             let title = (item.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/)?.[1] || "").trim();
+            let link = (item.match(/<link>(.*?)<\/link>/)?.[1] || "").trim();
+            
             if (source.name === "遊民星空") title = s2t(title);
             
-            // 過濾雜訊
-            if (JUNK_WORDS.some(word => title.includes(word))) return;
+            // --- 強化過濾機制 ---
+            if (JUNK_WORDS.some(word => title.toUpperCase().includes(word.toUpperCase()))) return;
+            if (JUNK_PATHS.some(path => link.includes(path))) return;
+            // ------------------
 
-            let link = item.match(/<link>(.*?)<\/link>/)?.[1];
             let pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1];
             let desc = item.match(/<description>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/description>/s)?.[1] || "";
             let img = "";
@@ -83,7 +92,7 @@ export default async function handler(req, res) {
             }
 
             allArticles.push({
-              title, url: link.trim(), image: img, source: source.name,
+              title, url: link, image: img, source: source.name,
               ts: new Date(pubDate).getTime() || now,
               time: pubDate ? pubDate.slice(5, 16) : ""
             });
