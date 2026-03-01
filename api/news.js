@@ -10,12 +10,11 @@ export default async function handler(req, res) {
     { name: "巴哈姆特", url: "https://news.google.com/rss/search?q=site:gnn.gamer.com.tw&hl=zh-TW&gl=TW&ceid=TW:zh-Hant", type: "gnews" }
   ];
 
-  // --- 擴大過濾清單：大小寫不拘 (邏輯會自動轉大寫比對) ---
   const JUNK = [
     'SAMSUNG', 'GALAXY', 'IPHONE', 'SONOS', 'SOUNDBAR', 'DEALS', 'OFFER', 'SALE', 
     'PC', 'RTX', 'GPU', 'ALIENWARE', 'MONITOR', 'LAPTOP', 'DUSTER', 'KEYBOARD', 
     'MOUSE', 'HEADSET', 'PRICE', 'SAVE', 'DISCOUNT', 'LOWEST', 'DEAL', 'HARDWARE',
-    'LEGO', 'APPLE TV', 'DISNEY', 'NETFLIX', 'HBO', 'PEACOCK', 'STREAMING', 'AMAZON PRIME', 'SHOWTIME'
+    'LEGO', 'APPLE TV', 'DISNEY', 'NETFLIX', 'HBO', 'PEACOCK', 'STREAMING', 'AMAZON PRIME'
   ];
 
   try {
@@ -31,8 +30,6 @@ export default async function handler(req, res) {
         
         rawItems.forEach(item => {
           let title = (item.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/)?.[1] || "").trim();
-          
-          // 大小寫不拘過濾邏輯
           if (JUNK.some(k => title.toUpperCase().includes(k))) return;
 
           let link = (item.match(/<link>(.*?)<\/link>/)?.[1] || "").trim();
@@ -52,7 +49,6 @@ export default async function handler(req, res) {
       }
     });
 
-    // 依時間排序 (最新在前)
     finalArticles.sort((a, b) => b.ts - a.ts);
     res.status(200).json({ articles: finalArticles.slice(0, 42) });
   } catch (e) { res.status(500).json({ error: e.message }); }
