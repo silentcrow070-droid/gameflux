@@ -24,8 +24,8 @@
   .img-wrap { width: 100%; aspect-ratio: 16/9; background: #eee; position: relative; overflow: hidden; }
   .img-wrap img { width: 100%; height: 100%; object-fit: cover; }
   
-  /* --- NEW 閃爍標籤 CSS --- */
-  @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
+  /* NEW 標籤閃爍動畫 */
+  @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
   .badge-new { 
     position: absolute; top: 10px; left: 10px; background: #ff4757; color: white; 
     font-size: 10px; font-weight: 900; padding: 2px 6px; border-radius: 4px; 
@@ -35,12 +35,10 @@
   .fallback { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; color: #fff; font-weight: 900; font-size: 1.4rem; text-transform: uppercase; }
 
   .content { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; }
-  .meta { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .meta { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
   .dot { width: 8px; height: 8px; border-radius: 50%; }
   .source { font-size: 0.75rem; font-weight: 900; color: #888; text-transform: uppercase; }
-  
-  /* --- 時間文字樣式 --- */
-  .time-stamp { font-size: 0.7rem; color: #bbb; font-weight: 400; margin-left: auto; }
+  .time-stamp { font-size: 0.7rem; color: #bbb; margin-left: auto; }
 
   .title { font-size: 1.1rem; font-weight: 700; line-height: 1.4; color: #111; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .news-card.featured .title { font-size: 1.7rem; }
@@ -56,7 +54,7 @@
 <nav>
   <div class="nav-container">
     <a href="/" class="brand">遊戲人間</a>
-    <div id="status" class="sync-text">九大權威渠道同步中...</div>
+    <div id="status" class="sync-text">情報同步中...</div>
   </div>
 </nav>
 
@@ -73,17 +71,13 @@ function formatTime(ts) {
   return isToday ? `今天 ${timeStr}` : `${d.getMonth()+1}/${d.getDate()} ${timeStr}`;
 }
 
-function checkIsToday(ts) {
-  return new Date(ts).toDateString() === new Date().toDateString();
-}
-
 async function load() {
   const res = await fetch('/api/news');
   const data = await res.json();
   document.getElementById('grid').innerHTML = data.articles.map((a, i) => `
     <a href="${a.url}" target="_blank" class="news-card ${i === 0 ? 'featured' : ''}">
       <div class="img-wrap">
-        ${checkIsToday(a.ts) ? `<div class="badge-new">NEW</div>` : ''}
+        ${i < 5 ? `<div class="badge-new">NEW</div>` : ''}
         ${a.image ? `<img src="${a.image}" referrerpolicy="no-referrer" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
         <div class="fallback" style="background:${themes[a.source] || '#8fd8d2'}; display:${a.image ? 'none' : 'flex'}">${a.source}</div>
       </div>
