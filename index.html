@@ -8,34 +8,31 @@
 <style>
   :root { --tiffany: #8fd8d2; --bg: #f8f9fa; --card: #ffffff; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); font-family: 'Noto Sans TC', sans-serif; color: #333; }
+  body { background: var(--bg); font-family: 'Noto Sans TC', sans-serif; color: #333; position: relative; }
 
   nav { background: var(--tiffany); padding: 12px 0; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
   .nav-container { width: 95%; max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
   .brand { font-size: 1.4rem; font-weight: 900; color: #fff; text-decoration: none; letter-spacing: 1px; }
   
-  .nav-right { display: flex; align-items: center; gap: 15px; }
-  
-  .lang-toggle {
-    background: rgba(255,255,255,0.2);
-    border: 1px solid rgba(255,255,255,0.4);
-    border-radius: 20px;
-    padding: 5px 15px;
-    color: #fff;
-    font-size: 0.85rem;
+  /* 雙按鈕群組 */
+  .lang-group { display: flex; background: rgba(0,0,0,0.1); border-radius: 20px; padding: 2px; }
+  .lang-btn {
+    border: none;
+    background: transparent;
+    padding: 6px 16px;
+    border-radius: 18px;
+    color: rgba(255,255,255,0.7);
+    font-size: 0.8rem;
     font-weight: 700;
     cursor: pointer;
     transition: 0.3s;
-    min-width: 70px;
-    text-align: center;
   }
-  .lang-toggle:hover { background: rgba(255,255,255,0.3); }
-  .lang-toggle.active { background: #fff; color: var(--tiffany); border-color: #fff; }
+  .lang-btn.active { background: #fff; color: var(--tiffany); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
 
-  .sync-text { font-size: 0.85rem; color: rgba(255,255,255,0.85); font-weight: 500; font-family: monospace; }
+  .sync-text { font-size: 0.85rem; color: rgba(255,255,255,0.8); font-weight: 500; font-family: monospace; }
 
+  /* 網格與卡片 */
   .main-grid { width: 95%; max-width: 1400px; margin: 30px auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
-  
   .news-card { background: var(--card); border-radius: 12px; overflow: hidden; text-decoration: none; color: inherit; display: flex; flex-direction: column; transition: 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; }
   .news-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.1); }
   .news-card.featured { grid-column: span 2; grid-row: span 2; }
@@ -43,26 +40,20 @@
   .img-wrap { width: 100%; aspect-ratio: 16/9; background: #eee; position: relative; overflow: hidden; }
   .img-wrap img { width: 100%; height: 100%; object-fit: cover; }
   
-  @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-  .badge-new { 
-    position: absolute; top: 10px; left: 10px; background: #ff4757; color: white; 
-    font-size: 10px; font-weight: 900; padding: 2px 6px; border-radius: 4px; 
-    z-index: 10; animation: blink 1.5s infinite; 
-  }
-
-  .fallback { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; color: #fff; font-weight: 900; font-size: 1.4rem; text-transform: uppercase; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .badge-new { position: absolute; top: 10px; left: 10px; background: #ff4757; color: white; font-size: 10px; font-weight: 900; padding: 2px 6px; border-radius: 4px; z-index: 10; animation: blink 1.5s infinite; }
 
   .content { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; }
   .meta { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
   .dot { width: 8px; height: 8px; border-radius: 50%; }
   .source { font-size: 0.75rem; font-weight: 900; color: #888; text-transform: uppercase; }
   .time-stamp { font-size: 0.7rem; color: #bbb; margin-left: auto; }
-
   .title { font-size: 1.1rem; font-weight: 700; line-height: 1.4; color: #111; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-  .news-card.featured .title { font-size: 1.7rem; }
 
-  .goog-te-banner-frame { display: none !important; }
+  /* === 強制隱藏 Google 翻譯 Bar 與修復留白 === */
+  .goog-te-banner-frame, .skiptranslate, #goog-gt-tt { display: none !important; }
   body { top: 0 !important; }
+  .goog-text-highlight { background-color: transparent !important; box-shadow: none !important; }
 
   @media (max-width: 768px) {
     .main-grid { grid-template-columns: 1fr; }
@@ -75,8 +66,11 @@
 <nav>
   <div class="nav-container">
     <a href="/" class="brand">遊戲人間</a>
-    <div class="nav-right">
-      <button id="transToggle" class="lang-toggle" onclick="toggleTranslate()">原文</button>
+    <div class="nav-right" style="display:flex; align-items:center; gap:15px;">
+      <div class="lang-group">
+        <button id="btn-orig" class="lang-btn" onclick="setTranslate(false)">原文</button>
+        <button id="btn-zh" class="lang-btn" onclick="setTranslate(true)">中文</button>
+      </div>
       <div id="status" class="sync-text">10:00</div>
     </div>
   </div>
@@ -87,11 +81,7 @@
 <div id="google_translate_element" style="display:none"></div>
 <script type="text/javascript">
 function googleTranslateElementInit() {
-  new google.translate.TranslateElement({
-    pageLanguage: 'auto',
-    includedLanguages: 'zh-TW',
-    autoDisplay: false
-  }, 'google_translate_element');
+  new google.translate.TranslateElement({pageLanguage: 'auto', includedLanguages: 'zh-TW', autoDisplay: false}, 'google_translate_element');
 }
 </script>
 <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
@@ -99,54 +89,34 @@ function googleTranslateElementInit() {
 <script>
 const themes = { 'PlayStation': '#003087', 'Xbox Wire': '#107c10', 'Nintendo': '#e60012', 'IGN': '#bf1313', '巴哈姆特': '#00adef' };
 let isTranslated = localStorage.getItem('isTranslated') === 'true';
-let globalArticles = []; // 儲存抓到的新聞以便重新渲染連結
+let globalArticles = [];
 
-function toggleTranslate() {
-  isTranslated = !isTranslated;
+function setTranslate(val) {
+  if (isTranslated === val) return;
+  isTranslated = val;
   localStorage.setItem('isTranslated', isTranslated);
-  applyTranslate();
-  renderArticles(); // 切換時重新渲染網頁上的連結
-}
-
-function applyTranslate() {
-  const btn = document.getElementById('transToggle');
-  const select = document.querySelector('.goog-te-combo');
   
   if (isTranslated) {
-    btn.innerText = "中文";
-    btn.classList.add('active');
+    const select = document.querySelector('.goog-te-combo');
     if (select) {
       select.value = 'zh-TW';
       select.dispatchEvent(new Event('change'));
     }
   } else {
-    btn.innerText = "原文";
-    btn.classList.remove('active');
-    const restoreBtn = document.querySelector('.goog-te-banner-frame iframe');
-    const iframeDoc = restoreBtn?.contentDocument || restoreBtn?.contentWindow.document;
-    const restore = iframeDoc?.getElementById(':1.restore');
-    if (restore) restore.click();
-    else if(document.querySelector('.goog-te-combo')) {
-        location.reload();
-    }
+    // 恢復原文最乾淨的方法：刷新
+    location.reload();
   }
+  updateUI();
+  renderArticles();
 }
 
-function formatTime(ts) {
-  const d = new Date(ts);
-  const now = new Date();
-  const isToday = d.toDateString() === now.toDateString();
-  const timeStr = d.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
-  return isToday ? `今天 ${timeStr}` : `${d.getMonth()+1}/${d.getDate()} ${timeStr}`;
+function updateUI() {
+  document.getElementById('btn-zh').classList.toggle('active', isTranslated);
+  document.getElementById('btn-orig').classList.toggle('active', !isTranslated);
 }
 
-// 核心功能：動態生成連結
 function getSmartUrl(url) {
-  if (isTranslated) {
-    // 如果是中文模式，封裝成 Google 翻譯連結
-    return `https://translate.google.com/translate?sl=auto&tl=zh-TW&u=${encodeURIComponent(url)}`;
-  }
-  return url;
+  return isTranslated ? `https://translate.google.com/translate?sl=auto&tl=zh-TW&u=${encodeURIComponent(url)}` : url;
 }
 
 function renderArticles() {
@@ -161,7 +131,7 @@ function renderArticles() {
         <div class="meta">
           <div class="dot" style="background:${themes[a.source] || '#8fd8d2'}"></div>
           <span class="source">${a.source}</span>
-          <span class="time-stamp">${formatTime(a.ts)}</span>
+          <span class="time-stamp">${new Date(a.ts).toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit', hour12:false})}</span>
         </div>
         <h2 class="title">${a.title}</h2>
       </div>
@@ -173,19 +143,13 @@ async function load() {
   const res = await fetch('/api/news');
   const data = await res.json();
   globalArticles = data.articles;
+  updateUI();
   renderArticles();
-  
-  if(isTranslated) setTimeout(applyTranslate, 800);
+  if(isTranslated) setTimeout(() => {
+    const select = document.querySelector('.goog-te-combo');
+    if (select) { select.value = 'zh-TW'; select.dispatchEvent(new Event('change')); }
+  }, 1000);
 }
-
-let seconds = 600;
-setInterval(() => {
-  seconds = seconds <= 0 ? 600 : seconds - 1;
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  document.getElementById('status').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
-  if(seconds === 0) load();
-}, 1000);
 
 load();
 </script>
