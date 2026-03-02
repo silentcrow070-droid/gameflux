@@ -36,10 +36,16 @@ export default async function handler(req, res) {
           let link = (item.match(/<link>(.*?)<\/link>/)?.[1] || "").trim();
           let img = (item.match(/<media:content[^>]+url="([^">]+)"/i) || 
                      item.match(/<enclosure[^>]+url="([^">]+)"/i) ||
-                     item.match(/<img[^>]+src="([^">]+?)"/i) || [])[1] || "";
+                     item.match(/<img[^>]+src="([^">]+?)"/i) ||
+                     item.match(/<url>(.*?)<\/url>/i) || [])[1] || "";
 
           // 優化圖片解析
           if (source.name === "IGN" && img) img = img.split('?')[0].replace('/thumb/', '/article/'); 
+          
+          // 巴哈姆特特殊處理：Google News 圖片 URL 解碼
+          if (source.name === "巴哈姆特" && img) {
+            img = img.replace(/&amp;/g, '&');
+          } 
 
           finalArticles.push({
             title, url: link, image: img, source: source.name,
