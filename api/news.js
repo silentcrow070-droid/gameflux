@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   const allSources = [
     { name: "PlayStation", url: "https://blog.playstation.com/feed/", type: "rss" },
     { name: "Xbox Wire", url: "https://news.xbox.com/en-us/feed/", type: "rss" },
-    { name: "Nintendo Japan", url: "https://www.nintendo.co.jp/news/whatsnew.xml", type: "rss" },
+    { name: "Nintendo UK", url: "https://www.nintendo.com/en-gb/news.xml", type: "rss" },
     { name: "IGN", url: "https://feeds.feedburner.com/ign/all", type: "rss" },
     { name: "巴哈姆特", url: "https://news.google.com/rss/search?q=site:gnn.gamer.com.tw&hl=zh-TW&gl=TW&ceid=TW:zh-Hant", type: "gnews" }
   ];
