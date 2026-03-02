@@ -20,6 +20,34 @@
   .search-box::placeholder { color: rgba(255,255,255,0.7); }
   .search-box:focus { background: rgba(255,255,255,0.3); }
 
+  /* 導覽列背景 */
+  .hero-header {
+    background: linear-gradient(135deg, rgba(143, 216, 210, 0.9), rgba(143, 216, 210, 0.7)), 
+                url('https://images.unsplash.com/photo-1511512573113-f997d3f49b06?w=1920&h=400&fit=crop') center/cover;
+    padding: 30px 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.3) 100%);
+    z-index: 1;
+  }
+  .hero-header > * { position: relative; z-index: 2; }
+  .brand { font-size: 2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+  .sync-text { text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
+  .background-credit {
+    position: absolute;
+    bottom: 10px;
+    right: 20px;
+    color: rgba(255,255,255,0.8);
+    font-size: 0.7rem;
+    font-weight: 500;
+    z-index: 3;
+  }
+
   /* 導覽列 */
   nav { background: var(--tiffany); padding: 15px 0; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
   .nav-container { width: 95%; max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
@@ -62,10 +90,17 @@
 </head>
 <body>
 
-<nav>
+<div class="hero-header" id="heroHeader">
   <div class="nav-container">
     <a href="/" class="brand">遊戲人間</a>
     <div id="status" class="sync-text">更新倒數: 10:00</div>
+  </div>
+  <div class="background-credit" id="bgCredit"></div>
+</div>
+
+<nav>
+  <div class="nav-container">
+    <div></div>
   </div>
 </nav>
 
@@ -94,6 +129,46 @@ function formatDateTime(ts) {
   const hours = d.getHours().toString().padStart(2, '0');
   const minutes = d.getMinutes().toString().padStart(2, '0');
   return `${month}/${date} ${hours}:${minutes}`;
+}
+
+// 載入背景圖片
+async function loadBackground() {
+  try {
+    const today = new Date().toDateString();
+    const stored = localStorage.getItem('gameflux-bg');
+    
+    // 檢查是否為今日背景
+    if (stored) {
+      const { date, data } = JSON.parse(stored);
+      if (date === today && data) {
+        applyBackground(data);
+        return;
+      }
+    }
+    
+    // 獲取新背景
+    const res = await fetch('/api/news?type=background');
+    if (res.ok) {
+      const data = await res.json();
+      localStorage.setItem('gameflux-bg', JSON.stringify({ date: today, data }));
+      applyBackground(data);
+    }
+  } catch (e) {
+    console.error('載入背景失敗:', e);
+  }
+}
+
+function applyBackground(data) {
+  const heroHeader = document.getElementById('heroHeader');
+  const bgCredit = document.getElementById('bgCredit');
+  
+  if (heroHeader && data.image) {
+    heroHeader.style.background = `linear-gradient(135deg, rgba(143, 216, 210, 0.9), rgba(143, 216, 210, 0.7)), url('${data.image}') center/cover`;
+    
+    if (bgCredit) {
+      bgCredit.innerHTML = `📸 ${data.source}: ${data.title.length > 30 ? data.title.substring(0, 30) + '...' : data.title}`;
+    }
+  }
 }
 
 let allArticles = [];
@@ -174,6 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+loadBackground();
 load();
 </script>
 </body>
