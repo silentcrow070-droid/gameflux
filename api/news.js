@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     { name: "Xbox Wire", url: "https://news.xbox.com/en-us/feed/", type: "rss" },
     { name: "Nintendo", url: "https://www.nintendo.com/jp/topics/rss/index.xml", type: "rss" },
     { name: "IGN", url: "https://feeds.feedburner.com/ign/all", type: "rss" },
-    { name: "巴哈姆特", url: "https://news.google.com/rss/search?q=site:gnn.gamer.com.tw&hl=zh-TW&gl=TW&ceid=TW:zh-Hant", type: "gnews" }
+    { name: "巴哈姆特", url: "https://www.gamer.com.tw/rss/gnn.xml", type: "rss" }
   ];
 
   // 封殺雜訊關鍵字
@@ -19,9 +19,19 @@ export default async function handler(req, res) {
   ];
 
   try {
-    const results = await Promise.allSettled(allSources.map(s => 
-      fetch(s.url, { headers: { 'User-Agent': 'Mozilla/5.0' } }).then(r => r.text())
-    ));
+    const results = await Promise.allSettled(allSources.map(s => {
+      const headers = { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      };
+      
+      // 巴哈姆特特殊處理
+      if (s.name === "巴哈姆特") {
+        headers['Referer'] = 'https://www.gamer.com.tw/';
+        headers['Accept'] = 'application/rss+xml, application/xml, text/xml';
+      }
+      
+      return fetch(s.url, { headers }).then(r => r.text());
+    }));
 
     let finalArticles = [];
     results.forEach((result, i) => {
@@ -37,15 +47,11 @@ export default async function handler(req, res) {
           let img = (item.match(/<media:content[^>]+url="([^">]+)"/i) || 
                      item.match(/<enclosure[^>]+url="([^">]+)"/i) ||
                      item.match(/<img[^>]+src="([^">]+?)"/i) ||
-                     item.match(/<url>(.*?)<\/url>/i) || [])[1] || "";
+                     item.match(/<url>(.*?)<\/url>/i) ||
+                     item.match(/<description>(?:<!\[CDATA\[)?.*?<img[^>]+src="([^">]+?)".*?(?:\]\]>)?<\/description>/i) || [])[1] || "";
 
           // 優化圖片解析
           if (source.name === "IGN" && img) img = img.split('?')[0].replace('/thumb/', '/article/'); 
-          
-          // 巴哈姆特特殊處理：Google News 圖片 URL 解碼
-          if (source.name === "巴哈姆特" && img) {
-            img = img.replace(/&amp;/g, '&');
-          } 
 
           finalArticles.push({
             title, url: link, image: img, source: source.name,
