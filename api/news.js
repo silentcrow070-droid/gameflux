@@ -5,7 +5,6 @@ export default async function handler(req, res) {
   const allSources = [
     { name: "PlayStation", url: "https://blog.playstation.com/feed/", type: "rss" },
     { name: "Xbox Wire", url: "https://news.xbox.com/en-us/feed/", type: "rss" },
-    { name: "Nintendo UK", url: "https://www.nintendo.com/en-gb/news.xml", type: "rss" },
     { name: "IGN", url: "https://feeds.feedburner.com/ign/all", type: "rss" },
     { name: "巴哈姆特", url: "https://news.google.com/rss/search?q=site:gnn.gamer.com.tw&hl=zh-TW&gl=TW&ceid=TW:zh-Hant", type: "gnews" }
   ];
@@ -16,7 +15,7 @@ export default async function handler(req, res) {
     'PC', 'RTX', 'GPU', 'ALIENWARE', 'MONITOR', 'LAPTOP', 'DUSTER', 'KEYBOARD', 
     'MOUSE', 'HEADSET', 'PRICE', 'SAVE', 'DISCOUNT', 'LOWEST', 'DEAL', 'HARDWARE',
     'LEGO', 'APPLE TV', 'DISNEY', 'NETFLIX', 'HBO', 'PEACOCK', 'STREAMING', 'AMAZON PRIME',
-    'MacBook', 'Bike', 'Printer', 'Gaming Chair'
+    'MACBOOK', 'BIKE', 'PRINTER', 'GAMING CHAIR'
   ];
 
   try {
@@ -48,9 +47,11 @@ export default async function handler(req, res) {
             img = img.replace(/&amp;/g, '&');
           } 
 
+          const pubDateMatch = item.match(/<pubDate>(.*?)<\/pubDate>/);
+          const ts = pubDateMatch ? new Date(pubDateMatch[1]).getTime() : Date.now();
+
           finalArticles.push({
-            title, url: link, image: img, source: source.name,
-            ts: new Date(item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1]).getTime() || Date.now()
+            title, url: link, image: img, source: source.name, ts
           });
         });
       }
