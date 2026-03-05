@@ -1,180 +1,63 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>遊戲人間 | GAMEFLUX</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
-<style>
-  :root { --tiffany: #8fd8d2; --bg: #f8f9fa; --card: #ffffff; }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); font-family: 'Noto Sans TC', sans-serif; color: #333; }
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
 
-  /* 篩選器 */
-  .filters { background: var(--tiffany); padding: 15px 0; }
-  .filter-container { width: 95%; max-width: 1400px; margin: 0 auto; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
-  .filter-btn { background: rgba(255,255,255,0.2); color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: 700; transition: 0.3s ease; font-size: 0.85rem; }
-  .filter-btn:hover { background: rgba(255,255,255,0.3); }
-  .filter-btn.active { background: white; color: var(--tiffany); }
-  .search-box { background: rgba(255,255,255,0.2); border: none; padding: 8px 16px; border-radius: 20px; color: white; font-weight: 500; font-size: 0.85rem; width: 200px; outline: none; }
-  .search-box::placeholder { color: rgba(255,255,255,0.7); }
-  .search-box:focus { background: rgba(255,255,255,0.3); }
+  const allSources = [
+    { name: "PlayStation", url: "https://blog.playstation.com/feed/", type: "rss" },
+    { name: "Xbox Wire", url: "https://news.xbox.com/en-us/feed/", type: "rss" },
+    { name: "IGN", url: "https://feeds.feedburner.com/ign/all", type: "rss" },
+    { name: "巴哈姆特", url: "https://news.google.com/rss/search?q=site:gnn.gamer.com.tw&hl=zh-TW&gl=TW&ceid=TW:zh-Hant", type: "gnews" }
+  ];
 
-  /* 導覽列 */
-  nav { background: var(--tiffany); padding: 15px 0; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-  .nav-container { width: 95%; max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
-  .brand { font-size: 1.4rem; font-weight: 900; color: #fff; text-decoration: none; letter-spacing: 1px; }
-  .sync-text { font-size: 0.85rem; color: rgba(255,255,255,0.85); font-weight: 500; font-family: monospace; }
+  // 封殺雜訊關鍵字
+  const JUNK = [
+    'SAMSUNG', 'GALAXY', 'IPHONE', 'SONOS', 'SOUNDBAR', 'DEALS', 'OFFER', 'SALE', 
+    'PC', 'RTX', 'GPU', 'ALIENWARE', 'MONITOR', 'LAPTOP', 'DUSTER', 'KEYBOARD', 
+    'MOUSE', 'HEADSET', 'PRICE', 'SAVE', 'DISCOUNT', 'LOWEST', 'DEAL', 'HARDWARE',
+    'LEGO', 'APPLE TV', 'DISNEY', 'NETFLIX', 'HBO', 'PEACOCK', 'STREAMING', 'AMAZON PRIME',
+    'MACBOOK', 'BIKE', 'PRINTER', 'GAMING CHAIR'
+  ];
 
-  /* 網格系統 */
-  .main-grid { width: 95%; max-width: 1400px; margin: 30px auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
-  
-  .news-card { background: var(--card); border-radius: 12px; overflow: hidden; text-decoration: none; color: inherit; display: flex; flex-direction: column; transition: 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; }
-  .news-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.1); }
-  .news-card.featured { grid-column: span 2; grid-row: span 2; }
-
-  .img-wrap { width: 100%; aspect-ratio: 16/9; background: #eee; position: relative; overflow: hidden; }
-  .img-wrap img { width: 100%; height: 100%; object-fit: cover; }
-  
-  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-  .badge-new { 
-    position: absolute; top: 10px; left: 10px; background: #ff4757; color: white; 
-    font-size: 10px; font-weight: 900; padding: 2px 6px; border-radius: 4px; 
-    z-index: 10; animation: blink 1.5s infinite; 
-  }
-
-  .fallback { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; color: #fff; font-weight: 900; font-size: 1.4rem; text-transform: uppercase; }
-
-  .content { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; }
-  .meta { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; }
-  .source { font-size: 0.75rem; font-weight: 900; color: #888; text-transform: uppercase; }
-  .time-stamp { font-size: 0.7rem; color: #bbb; margin-left: auto; font-weight: 700; }
-
-  .title { font-size: 1.1rem; font-weight: 700; line-height: 1.4; color: #111; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-  .news-card.featured .title { font-size: 1.7rem; }
-
-  @media (max-width: 768px) {
-    .main-grid { grid-template-columns: 1fr; }
-    .news-card.featured { grid-column: auto; grid-row: auto; }
-  }
-</style>
-</head>
-<body>
-
-<nav>
-  <div class="nav-container">
-    <a href="/" class="brand">遊戲人間</a>
-    <div id="status" class="sync-text">更新倒數: 10:00</div>
-  </div>
-</nav>
-
-<div class="filters">
-  <div class="filter-container">
-    <button class="filter-btn active" data-filter="all">全部</button>
-    <button class="filter-btn" data-filter="PlayStation">PlayStation</button>
-    <button class="filter-btn" data-filter="Xbox Wire">Xbox</button>
-    <button class="filter-btn" data-filter="Nintendo">Nintendo</button>
-    <button class="filter-btn" data-filter="IGN">IGN</button>
-    <button class="filter-btn" data-filter="巴哈姆特">巴哈姆特</button>
-    <input type="text" class="search-box" id="searchBox" placeholder="搜尋新聞...">
-  </div>
-</div>
-
-<div class="main-grid" id="grid"></div>
-
-<script>
-const themes = { 'PlayStation': '#003087', 'Xbox Wire': '#107c10', 'Nintendo': '#e60012', 'IGN': '#bf1313', '巴哈姆特': '#00adef' };
-
-// 格式化時間：顯示 月/日 時:分
-function formatDateTime(ts) {
-  const d = new Date(ts);
-  const month = d.getMonth() + 1;
-  const date = d.getDate();
-  const hours = d.getHours().toString().padStart(2, '0');
-  const minutes = d.getMinutes().toString().padStart(2, '0');
-  return `${month}/${date} ${hours}:${minutes}`;
-}
-
-let allArticles = [];
-let currentFilter = 'all';
-let searchQuery = '';
-
-async function load() {
   try {
-    const res = await fetch('/api/news');
-    const data = await res.json();
-    allArticles = data.articles;
-    renderArticles();
-  } catch (e) {
-    console.error("載入失敗:", e);
-  }
-}
+    const results = await Promise.allSettled(allSources.map(s => 
+      fetch(s.url, { headers: { 'User-Agent': 'Mozilla/5.0' } }).then(r => r.text())
+    ));
 
-function renderArticles() {
-  let filtered = allArticles;
-  
-  // 按來源篩選
-  if (currentFilter !== 'all') {
-    filtered = filtered.filter(a => a.source === currentFilter);
-  }
-  
-  // 按搜尋關鍵字篩選
-  if (searchQuery) {
-    filtered = filtered.filter(a => 
-      a.title.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }
-  
-  document.getElementById('grid').innerHTML = filtered.map((a, i) => `
-    <a href="${a.url}" target="_blank" class="news-card ${i === 0 ? 'featured' : ''}">
-      <div class="img-wrap">
-        ${i < 5 ? `<div class="badge-new">NEW</div>` : ''}
-        ${a.image ? `<img src="${a.image}" referrerpolicy="no-referrer" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
-        <div class="fallback" style="background:${themes[a.source] || '#8fd8d2'}; display:${a.image ? 'none' : 'flex'}">${a.source}</div>
-      </div>
-      <div class="content">
-        <div class="meta">
-          <div class="dot" style="background:${themes[a.source] || '#8fd8d2'}"></div>
-          <span class="source">${a.source}</span>
-          <span class="time-stamp">${formatDateTime(a.ts)}</span>
-        </div>
-        <h2 class="title">${a.title}</h2>
-      </div>
-    </a>
-  `).join('');
-}
+    let finalArticles = [];
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled') {
+        const source = allSources[i];
+        const rawItems = result.value.split('<item>').slice(1);
+        
+        rawItems.forEach(item => {
+          let title = (item.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/)?.[1] || "").trim();
+          if (JUNK.some(k => title.toUpperCase().includes(k))) return;
 
-// 倒數計時器邏輯
-let seconds = 600;
-setInterval(() => {
-  seconds = seconds <= 0 ? 600 : seconds - 1;
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  document.getElementById('status').innerText = `更新倒數: ${m}:${s < 10 ? '0' : ''}${s}`;
-  if(seconds === 0) load();
-}, 1000);
+          let link = (item.match(/<link>(.*?)<\/link>/)?.[1] || "").trim();
+          let img = (item.match(/<media:content[^>]+url="([^">]+)"/i) || 
+                     item.match(/<enclosure[^>]+url="([^">]+)"/i) ||
+                     item.match(/<img[^>]+src="([^">]+?)"/i) ||
+                     item.match(/<url>(.*?)<\/url>/i) || [])[1] || "";
 
-// 篩選器事件監聽
-document.addEventListener('DOMContentLoaded', () => {
-  // 篩選按鈕
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentFilter = btn.dataset.filter;
-      renderArticles();
+          // 優化圖片解析
+          if (source.name === "IGN" && img) img = img.split('?')[0].replace('/thumb/', '/article/'); 
+          
+          // 巴哈姆特特殊處理：Google News 圖片 URL 解碼
+          if (source.name === "巴哈姆特" && img) {
+            img = img.replace(/&amp;/g, '&');
+          } 
+
+          const pubDateMatch = item.match(/<pubDate>(.*?)<\/pubDate>/);
+          const ts = pubDateMatch ? new Date(pubDateMatch[1]).getTime() : Date.now();
+
+          finalArticles.push({
+            title, url: link, image: img, source: source.name, ts
+          });
+        });
+      }
     });
-  });
-  
-  // 搜尋框
-  document.getElementById('searchBox').addEventListener('input', (e) => {
-    searchQuery = e.target.value;
-    renderArticles();
-  });
-});
 
-load();
-</script>
-</body>
-</html>
+    finalArticles.sort((a, b) => b.ts - a.ts);
+    res.status(200).json({ articles: finalArticles.slice(0, 42) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+}
