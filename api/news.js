@@ -15,7 +15,8 @@ export default async function handler(req, res) {
     'SAMSUNG', 'GALAXY', 'IPHONE', 'SONOS', 'SOUNDBAR', 'DEALS', 'OFFER', 'SALE', 
     'PC', 'RTX', 'GPU', 'ALIENWARE', 'MONITOR', 'LAPTOP', 'DUSTER', 'KEYBOARD', 
     'MOUSE', 'HEADSET', 'PRICE', 'SAVE', 'DISCOUNT', 'LOWEST', 'DEAL', 'HARDWARE',
-    'LEGO', 'APPLE TV', 'DISNEY', 'NETFLIX', 'HBO', 'PEACOCK', 'STREAMING', 'AMAZON PRIME'
+    'LEGO', 'APPLE TV', 'DISNEY', 'NETFLIX', 'HBO', 'PEACOCK', 'STREAMING', 'AMAZON PRIME',
+    'MacBook', 'Bike', 'Printer', 'Gaming Chair'
   ];
 
   try {
